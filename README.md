@@ -9,8 +9,6 @@ O sistema foi desenhado para rodar em ambiente **Windows** e utiliza o **Sumatra
 * Interface web simples para upload de arquivos.
 * Suporte automatizado para impressão de arquivos **PDF** (via SumatraPDF).
 * Suporte automatizado para impressão de **Imagens** (via `rundll32.exe`).
-* Tratamento de erros de timeout e falhas no spooler de impressão.
-* Acesso via rede local (rodando em `0.0.0.0:5000`).
 
 ## Pré-requisitos
 
