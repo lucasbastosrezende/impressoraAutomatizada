@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capital Papelaria - Impressão Rápida</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo h1 {
+            font-size: 2.5em;
+            color: #1e3a8a;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logo span {
+            color: #dc2626;
+            font-size: 0.6em;
+            display: block;
+            margin-top: -10px;
+            letter-spacing: 3px;
+        }
+
+        .step {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .step.visible, .step:not(.hidden) {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .step h2 {
+            color: #1e3a8a;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .step p {
+            color: #4b5563;
+            font-size: 1em;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e1;
+            border-radius: 15px;
+            padding: 60px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #1e3a8a;
+            background: rgba(30, 58, 138, 0.05);
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            border-color: #dc2626;
+            background: rgba(220, 38, 38, 0.1);
+            animation: pulse 1s infinite;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(30, 58, 138, 0.3);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(30, 58, 138, 0.4);
+        }
+
+        .file-preview {
+            margin-top: 20px;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .file-info {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #1e3a8a;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .options-section {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+
+        .option-group {
+            margin-bottom: 25px;
+        }
+
+        .option-group h3 {
+            color: #1e3a8a;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .radio-option:hover {
+            transform: scale(1.05);
+        }
+
+        .radio-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #1e3a8a;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+            margin: 10px;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+            box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.4);
+        }
+
+        .action-btn.primary:hover {
+            box-shadow: 0 15px 30px rgba(22, 163, 74, 0.4);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .summary {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .summary h3 {
+            color: #1e3a8a;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        .summary-details {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            border: 2px solid #16a34a;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #15803d;
+            text-align: center;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 2px solid #dc2626;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #dc2626;
+            text-align: center;
+        }
+
+        /* PDF Preview Styles */
+        #pdfPreviewContainer {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+
+        #pdfPreviewContainer > div:first-child {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        #pdfPreviewContainer button {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+        }
+
+        #pdfPreviewContainer button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(30, 58, 138, 0.3);
+        }
+
+        #globalCopies {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 1em;
+            width: 70px;
+            transition: border-color 0.3s ease;
+        }
+
+        #globalCopies:focus {
+            outline: none;
+            border-color: #1e3a8a;
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+        }
+
+        #pagesContainer {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+	  .page-options{
+		display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+	  }
+
+        .page-item {
+		width: 100%;
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-item::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            bottom: -3px;
+            left: -3px;
+            background: linear-gradient(45deg, #f8fafc, #e2e8f0);
+            border-radius: 15px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .page-item:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: #1e3a8a;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .page-item:hover::before {
+            opacity: 1;
+        }
+
+        .page-item canvas {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            transition: border-color 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .page-item:hover canvas {
+            border-color: #1e3a8a;
+        }
+
+        .page-item > div:first-child {
+            font-weight: bold;
+            color: #1e3a8a;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .page-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #1e3a8a;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .page-item label {
+            cursor: pointer;
+            color: #4b5563;
+            font-size: 0.9em;
+            transition: color 0.3s ease;
+        }
+
+        .page-item label:hover {
+            color: #1e3a8a;
+        }
+
+        .page-item input[type="number"] {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 5px 8px;
+            text-align: center;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .page-item input[type="number"]:focus {
+            outline: none;
+            border-color: #1e3a8a;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+        }
+
+        .page-item input[type="checkbox"]:checked + label {
+            color: #1e3a8a;
+            font-weight: 600;
+        }
+
+        /* Totals display */
+        #pdfPreviewContainer > div:last-child {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid #1e3a8a;
+        }
+
+        #pdfPreviewContainer > div:last-child strong {
+            color: #1e3a8a;
+            font-size: 1.1em;
+        }
+
+        #totalSelectedPages, #totalCopies {
+            color: #dc2626;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, rgba(30, 58, 138, 0.1), rgba(59, 130, 246, 0.1));
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-circle:nth-child(1) {
+            width: 100px;
+            height: 100px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-circle:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+
+        .floating-circle:nth-child(3) {
+            width: 80px;
+            height: 80px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+	.payment-methods {
+            margin: 30px 0;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+        }
+
+        .payment-option:hover {
+            border-color: #1e3a8a;
+            transform: translateX(10px);
+        }
+
+        .payment-option.selected {
+            border-color: #1e3a8a;
+            background: rgba(30, 58, 138, 0.1);
+        }
+
+	#stepbutton{
+		display: flex; justify-content: space-between; text-align: center; margin-top: 30px;
+	}
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .step {
+                padding: 20px;
+            }
+            
+            .upload-area {
+                padding: 30px;
+            }
+            
+            #pagesContainer {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 10px;
+		justify-items: center;
+            }
+            
+            .page-item {
+                padding: 15px;
+            }
+            
+            .radio-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            #pdfPreviewContainer > div:first-child {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            #pdfPreviewContainer button {
+                font-size: 0.8em;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-elements">
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+    </div>
+    <div class="container">
+        
+
+        <!-- Step 1: Upload -->
+        <div class="step" id="step1">
+<div class="logo">
+            <img src="{{ url_for('static', filename='logo/logo-removebg-preview.png') }}" alt="Logo Capital Papelaria" style="max-width: 150px; height: auto;">
+        </div>
+            <h2>Como funciona?</h2>
+            <p>Selecione o arquivo, você será redirecionado para as características de sua impressão.</p>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-area" id="uploadArea">
+                    <p id="HideFilled">Adicione o seu arquivo para impressão</p>
+                    <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        📁 escolha o arquivo
+                    </button>
+                    <input type="file" id="fileInput" name="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" style="display: none;" required>
+                    
+                    <div class="file-preview" id="filePreview" style="display: none;">
+                        <div class="file-info">
+                            <div id="fileName"></div>
+                            <div id="fileSize"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button type="button" class="action-btn primary hidden" id="nextStep1" onclick="goToStep(2)">Continuar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Step 2: PDF Preview -->
+        <div class="step hidden" id="step2">
+            <h2>Preview do PDF</h2>
+            <p style="margin: 0">Visualize as páginas e defina quantas cópias deseja imprimir de cada uma</p>
+            
+            <div id="pdfPreviewContainer" style="display: none;">
+                <div style="margin-bottom: 20px; display: flex; justify-content: space-between;">
+			  <div class="SelectAll" style="gap: 10px;">
+                    		<input type="checkbox" onchange="selectAllPages()" id="checkado" checked> Selecionar Todas</input>
+			  </div>
+		        <div style="display:flex;">
+                    	<label style="display: block; margin: 5px 0;font-size: 0.9em;">Definir Cópias para Todas</label>
+                    	<input type="number" onchange="setAllCopies()" id="globalCopies" min="0" max="99" value="1" style="width: 60px; margin-left: 10px;">
+			  </div>
+                </div>
+                
+                <div id="pagesContainer"></div>
+                
+                <div style="margin-top: 20px;">
+                    <strong>Total de páginas selecionadas: <span id="totalSelectedPages">0</span></strong>
+                    <strong style="margin-left: 20px;">Total de cópias: <span id="totalCopies">0</span></strong>
+                </div>
+            </div>
+
+            <div id="stepbutton">
+                <button class="action-btn" onclick="goToStep(1)">Voltar</button>
+                <button class="action-btn primary" onclick="goToStep(3)">Continuar</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Print Options -->
+        <div class="step hidden" id="step3">
+            <h2>Opções de Impressão</h2>
+            <p>Configure as opções de impressão do seu documento</p>
+
+            <div class="options-section">
+                <div class="option-group">
+                    <h3>Tipo de impressão:</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="printType" value="normal" checked>
+                            <span>Impressão Normal</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="printType" value="duplex">
+                            <span>Frente e Verso (se disponível)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>Qualidade:</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="quality" value="normal" checked>
+                            <span>Normal</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="quality" value="high">
+                            <span>Alta Qualidade</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>Tamanho do Papel:</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="paperSize" value="a4" checked>
+                            <span>A4</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="paperSize" value="letter">
+                            <span>Carta</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="paperSize" value="legal">
+                            <span>Legal</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>Orientação:</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="orientation" value="portrait" checked>
+                            <span>Retrato</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="orientation" value="landscape">
+                            <span>Paisagem</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stepbutton">
+                <button class="action-btn" onclick="goToStep(2)">Voltar</button>
+                <button class="action-btn primary" onclick="goToStep(4)">Continuar</button>
+            </div>
+        </div>
+
+
+        <!-- Step 3: Summary and Print -->
+        <div class="step hidden" id="step4">
+            <div class="summary">
+                <h3>Resumo da Impressão:</h3>
+                <div class="summary-details" id="summaryDetails">
+                    <div><strong>Arquivo:</strong> <span id="summaryFileName">-</span></div>
+                    <div><strong>Páginas selecionadas:</strong> <span id="summarySelectedPages">-</span></div>
+                    <div><strong>Total de cópias:</strong> <span id="summaryTotalCopies">-</span></div>
+                    <div><strong>Tipo:</strong> <span id="summaryPrintType">Impressão Normal</span></div>
+                    <div><strong>Qualidade:</strong> <span id="summaryQuality">Normal</span></div>
+		    <div><strong>Valor Total:</strong> <span id="summaryValue">Normal</span></div>
+                </div>
+                
+                
+                <div id="stepbutton">
+                    <button class="action-btn" onclick="goToStep(3)">Voltar</button>
+                    <button class="action-btn primary" onclick="goToStep(5)">Pagamento</button>
+                </div>
+            </div>
+        </div>
+
+	<div class="step hidden" id="step5">
+            <h2>Pagamento</h2>
+            
+            <div class="payment-methods">
+                <div class="payment-option" data-method="pix">
+                    <input type="radio" name="payment" value="pix" style="width: 20px; height: 20px; accent-color: #1e3a8a;">
+                    <span style="font-size: 1.2em;">Pix</span>
+                </div>
+                <div class="payment-option" data-method="credit">
+                    <input type="radio" name="payment" value="credit" style="width: 20px; height: 20px; accent-color: #1e3a8a;">
+                    <span style="font-size: 1.2em;">Cartão de Crédito</span>
+                </div>
+                <div class="payment-option" data-method="debit">
+                    <input type="radio" name="payment" value="debit" style="width: 20px; height: 20px; accent-color: #1e3a8a;">
+                    <span style="font-size: 1.2em;">Cartão de Débito</span>
+                </div>
+            </div>
+
+<div style="font-size: 1.5em; color: #1e3a8a; margin-bottom: 20px;"><strong>Valor:</strong></div>
+                <div class="price"></div>
+
+            <div style="background: #fef3c7; border-radius: 10px; padding: 20px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                <p style="color: #92400e; font-weight: 500;">*Para pagamentos no dinheiro, terá de ser feito pessoalmente, sem acesso a este site</p>
+            </div>
+	    
+                <div id="printStatus"></div>
+
+            <div id="stepbutton">
+                
+                <button class="action-btn" onclick="goToStep(4)">Voltar</button>
+                <button class="action-btn primary" id="printBtn" onclick="sendToPrint()">
+                      <span id="printBtnText">🖨️ Imprimir</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+    // Set PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    let currentStep = 1;
+    let uploadedFile = null;
+    let pdfDocument = null;
+    let pageData = [];
+    let originalPdfBytes = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        setupFileUpload();
+	setupPaymentOptions();
+    });
+
+    function setupFileUpload() {
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileUpload(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+    }
+
+    async function handleFileUpload(file) {
+        uploadedFile = file;
+        const fileName = file.name;
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        
+	if(uploadedFile){
+		document.getElementById("HideFilled").style.display = "none";
+	}
+
+        // Determine file icon based on type
+        let fileIcon = '📄';
+        if (file.type.includes('pdf')) fileIcon = '📋';
+        else if (file.type.includes('image')) fileIcon = '🖼️';
+        else if (file.type.includes('word')) fileIcon = '📝';
+        
+        document.getElementById('fileName').textContent = `${fileIcon} ${fileName}`;
+        document.getElementById('fileSize').textContent = `📊 ${fileSize} MB`;
+        document.getElementById('filePreview').style.display = 'block';
+        document.getElementById('nextStep1').classList.remove('hidden');
+
+        // If it's a PDF, load it for preview
+        if (file.type === 'application/pdf') {
+            await loadPDF(file);
+        }
+    }
+
+    async function loadPDF(file) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            originalPdfBytes = arrayBuffer; // Store as ArrayBuffer for PDF-lib
+            pdfDocument = await pdfjsLib.getDocument(arrayBuffer).promise;
+            
+            // Test if PDF-lib can also load this PDF
+            try {
+                await PDFLib.PDFDocument.load(originalPdfBytes);
+                console.log('PDF-lib compatibility: OK');
+            } catch (pdfLibError) {
+                console.warn('PDF-lib compatibility issue:', pdfLibError);
+                showMessage('⚠️ Aviso: Algumas funcionalidades de edição podem não funcionar com este PDF', 'warning');
+            }
+            
+            // Initialize page data
+            pageData = [];
+            for (let i = 1; i <= pdfDocument.numPages; i++) {
+                pageData.push({
+                    pageNum: i,
+                    selected: true,
+                    copies: 1
+                });
+            }
+            
+            console.log(`PDF loaded with ${pdfDocument.numPages} pages`);
+        } catch (error) {
+            console.error('Error loading PDF:', error);
+            showMessage('Erro ao carregar PDF para preview', 'error');
+        }
+    }
+
+    async function createModifiedPDF() {
+        if (!originalPdfBytes || !pdfDocument) {
+            return null;
+        }
+
+        try {
+            // Get selected pages and their copy counts
+            const selectedPages = [];
+            const pageMap = new Map(); // Track which pages and how many copies
+            
+            for (let i = 1; i <= pdfDocument.numPages; i++) {
+                const checkbox = document.getElementById(`page-${i}`);
+                const copiesInput = document.getElementById(`copies-${i}`);
+                
+                if (checkbox && checkbox.checked) {
+                    const copies = parseInt(copiesInput.value) || 1;
+                    if (copies > 0) {
+                        pageMap.set(i - 1, copies); // PDF-lib uses 0-based indexing
+                        for (let copy = 0; copy < copies; copy++) {
+                            selectedPages.push(i - 1);
+                        }
+                    }
+                }
+            }
+
+            if (selectedPages.length === 0) {
+                throw new Error('Nenhuma página selecionada');
+            }
+
+            console.log('Selected pages for processing:', selectedPages);
+
+            // Load original PDF with PDF-lib - try different approaches
+            let pdfDoc;
+            try {
+                // First attempt: direct load
+                pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
+            } catch (firstError) {
+                console.warn('First load attempt failed:', firstError);
+                
+                try {
+                    // Second attempt: create Uint8Array
+                    const uint8Array = new Uint8Array(originalPdfBytes);
+                    pdfDoc = await PDFLib.PDFDocument.load(uint8Array);
+                } catch (secondError) {
+                    console.warn('Second load attempt failed:', secondError);
+                    
+                    try {
+                        // Third attempt: re-read file
+                        const newArrayBuffer = await uploadedFile.arrayBuffer();
+                        pdfDoc = await PDFLib.PDFDocument.load(newArrayBuffer);
+                    } catch (thirdError) {
+                        console.error('All load attempts failed:', thirdError);
+                        throw new Error('PDF não é compatível com edição. Arquivo será enviado sem modificações.');
+                    }
+                }
+            }
+            
+            // Create new PDF document
+            const newPdfDoc = await PDFLib.PDFDocument.create();
+            
+            // Copy selected pages to new document
+            console.log('Copying pages to new document...');
+            const copiedPages = await newPdfDoc.copyPages(pdfDoc, selectedPages);
+            
+            // Add pages to new document
+            copiedPages.forEach((page, index) => {
+                newPdfDoc.addPage(page);
+                console.log(`Added page ${selectedPages[index] + 1} to new document`);
+            });
+
+            // Serialize the new PDF
+            console.log('Saving new PDF...');
+            const pdfBytes = await newPdfDoc.save();
+            
+            // Create blob and file
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const modifiedFileName = uploadedFile.name.replace(/\.pdf$/i, '_modified.pdf');
+            
+            console.log(`Created modified PDF: ${modifiedFileName} (${blob.size} bytes)`);
+            return new File([blob], modifiedFileName, { type: 'application/pdf' });
+
+        } catch (error) {
+            console.error('Error creating modified PDF:', error);
+            
+            // If it's a compatibility error, allow fallback
+            if (error.message.includes('não é compatível')) {
+                throw error;
+            }
+            
+            throw new Error(`Erro ao processar PDF: ${error.message}`);
+        }
+    }
+
+    async function renderPDFPages() {
+        if (!pdfDocument) return;
+
+        const container = document.getElementById('pagesContainer');
+        container.innerHTML = '';
+
+        for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page-item';
+            pageDiv.style.cssText = `
+                display: inline-block;
+                margin: 10px;
+                border: 2px solid #ccc;
+                padding: 10px;
+                text-align: center;
+                vertical-align: top;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+            `;
+
+            // Create canvas for PDF page
+            const canvas = document.createElement('canvas');
+            canvas.style.cssText = `
+                max-width: 100%;
+                border: 1px solid #ddd;
+                display: block;
+                margin: 0 auto 10px auto;
+            `;
+
+            // Page number label
+            const pageLabel = document.createElement('div');
+            pageLabel.textContent = `Página ${pageNum}`;
+            pageLabel.style.cssText = `
+                font-weight: bold;
+                margin-bottom: 10px;
+                color: #333;
+            `;
+
+            // Checkbox for selection
+		const pageOptions = document.createElement('div');
+		const pageCheckbox = document.createElement('div');
+		const pageQuantity = document.createElement('div');
+		pageOptions.className = "page-options";
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
+            checkbox.id = `page-${pageNum}`;
+            checkbox.addEventListener('change', () => {
+                updateTotals();
+                updatePageVisualState(pageDiv, checkbox.checked);
+            });
+
+            const checkboxLabel = document.createElement('label');
+            checkboxLabel.htmlFor = `page-${pageNum}`;
+            checkboxLabel.textContent = 'Imprimir';
+            checkboxLabel.style.cssText = `
+                display: block;
+                margin: 5px 0;
+                cursor: pointer;
+            `;
+
+            // Copies input
+            const copiesLabel = document.createElement('label');
+            copiesLabel.textContent = 'Cópias:';
+            copiesLabel.style.cssText = `
+                display: block;
+                margin: 5px 0;
+                font-size: 12px;
+            `;
+
+            const copiesInput = document.createElement('input');
+            copiesInput.type = 'number';
+            copiesInput.min = '0';
+            copiesInput.max = '99';
+            copiesInput.value = '1';
+            copiesInput.id = `copies-${pageNum}`;
+            copiesInput.style.cssText = `
+                width: 50px;
+                padding: 2px;
+                text-align: center;
+            `;
+            copiesInput.addEventListener('change', updateTotals);
+
+            // Assemble page div
+            pageDiv.appendChild(pageLabel);
+            pageDiv.appendChild(canvas);
+		pageDiv.appendChild(pageOptions);
+		pageOptions.appendChild(pageCheckbox);
+		pageOptions.appendChild(pageQuantity);
+            pageCheckbox.appendChild(checkbox);
+            pageCheckbox.appendChild(checkboxLabel);
+            pageQuantity.appendChild(copiesLabel);
+            pageQuantity.appendChild(copiesInput);
+
+            container.appendChild(pageDiv);
+
+            // Render PDF page
+            try {
+                const page = await pdfDocument.getPage(pageNum);
+                const scale = 0.5;
+                const viewport = page.getViewport({ scale });
+
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                const context = canvas.getContext('2d');
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+
+                await page.render(renderContext).promise;
+            } catch (error) {
+                console.error(`Error rendering page ${pageNum}:`, error);
+                canvas.style.display = 'none';
+                const errorMsg = document.createElement('div');
+                errorMsg.textContent = 'Erro ao carregar página';
+                errorMsg.style.cssText = `
+                    color: red;
+                    font-size: 12px;
+                    margin: 10px 0;
+                `;
+                pageDiv.appendChild(errorMsg);
+            }
+        }
+
+        updateTotals();
+    }
+
+    function updatePageVisualState(pageDiv, isSelected) {
+        if (isSelected) {
+            pageDiv.style.opacity = '1';
+            pageDiv.style.border = '2px solid #007bff';
+            pageDiv.style.transform = 'scale(1)';
+        } else {
+            pageDiv.style.border = '2px solid #ddd';
+            pageDiv.style.transform = 'scale(0.95)';
+        }
+    }
+
+   function selectAllPages() {
+  // 1. Pegue o próprio elemento, não o value
+  const master = document.getElementById('checkado');
+
+  // 2. true = marcar tudo, false = desmarcar tudo
+  const shouldSelect = master.checked;
+  console.log(shouldSelect);          // se quiser inspecionar no console
+
+  // 3. Um único loop resolve os dois casos
+  for (let i = 1; i <= pdfDocument.numPages; i++) {
+    const checkbox = document.getElementById(`page-${i}`);
+    if (!checkbox) continue;
+
+    checkbox.checked = shouldSelect;
+
+    const pageDiv = checkbox.closest('.page-item');
+    if (pageDiv) updatePageVisualState(pageDiv, shouldSelect);
+  }
+
+  updateTotals();
+}
+
+    function setAllCopies() {
+        const globalCopies = document.getElementById('globalCopies').value;
+        for (let i = 1; i <= pdfDocument.numPages; i++) {
+            const copiesInput = document.getElementById(`copies-${i}`);
+            if (copiesInput) copiesInput.value = globalCopies;
+        }
+        updateTotals();
+    }
+
+    function updateTotals() {
+        if (!pdfDocument) return;
+
+        let selectedPages = 0;
+        let totalCopies = 0;
+
+        for (let i = 1; i <= pdfDocument.numPages; i++) {
+            const checkbox = document.getElementById(`page-${i}`);
+            const copiesInput = document.getElementById(`copies-${i}`);
+            
+            if (checkbox && checkbox.checked) {
+                selectedPages++;
+                if (copiesInput) {
+                    totalCopies += parseInt(copiesInput.value) || 0;
+                }
+            }
+        }
+
+        document.getElementById('totalSelectedPages').textContent = selectedPages;
+        document.getElementById('totalCopies').textContent = totalCopies;
+    }
+
+    function goToStep(stepNum) {
+        // Hide current step
+        document.getElementById(`step${currentStep}`).classList.add('hidden');
+        
+        // Show new step
+        setTimeout(async () => {
+            document.getElementById(`step${stepNum}`).classList.remove('hidden');
+            
+            // If going to step 2 and we have a PDF, show preview
+            if (stepNum === 2 && pdfDocument) {
+                document.getElementById('pdfPreviewContainer').style.display = 'block';
+                await renderPDFPages();
+            }
+            
+            // Update summary if going to step 3
+            if (stepNum === 3) {
+                updateSummary();
+            }
+            
+            currentStep = stepNum;
+            
+            // Scroll to top of new step
+            document.getElementById(`step${stepNum}`).scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 300);
+    }
+
+    function updateSummary() {
+        const printType = document.querySelector('input[name="printType"]:checked')?.value || 'normal';
+        const quality = document.querySelector('input[name="quality"]:checked')?.value || 'normal';
+        
+        document.getElementById('summaryFileName').textContent = uploadedFile ? uploadedFile.name : '-';
+        document.getElementById('summaryPrintType').textContent = printType === 'duplex' ? 'Frente e Verso' : 'Impressão Normal';
+        document.getElementById('summaryQuality').textContent = quality === 'high' ? 'Alta Qualidade' : 'Normal';
+        
+        // Update page and copy counts
+        const selectedPages = document.getElementById('totalSelectedPages').textContent;
+        const totalCopies = document.getElementById('totalCopies').textContent;
+        
+        document.getElementById('summarySelectedPages').textContent = selectedPages;
+        document.getElementById('summaryTotalCopies').textContent = totalCopies;
+
+	let valorPagar = totalCopies * 0.50;
+	let decimalNumber = valorPagar.toFixed(2);
+
+	document.getElementById('summaryValue').textContent = "R$" + decimalNumber;
+	document.querySelector('.price').textContent = "R$" + decimalNumber;
+    }
+
+    async function sendToPrint() {
+        if (!uploadedFile) {
+            showMessage('Nenhum arquivo selecionado!', 'error');
+            return;
+        }
+
+        const printBtn = document.getElementById('printBtn');
+        const printBtnText = document.getElementById('printBtnText');
+        
+        // Disable button and show loading
+        printBtn.disabled = true;
+        printBtnText.innerHTML = '<span class="loading"></span>Processando arquivo...';
+
+        try {
+            let fileToSend = uploadedFile;
+            let usedModification = false;
+
+            // If it's a PDF and we have pages selected/deselected, create modified PDF
+            if (uploadedFile.type === 'application/pdf' && pdfDocument) {
+                // Check if all pages are selected with 1 copy each
+                let needsModification = false;
+                for (let i = 1; i <= pdfDocument.numPages; i++) {
+                    const checkbox = document.getElementById(`page-${i}`);
+                    const copiesInput = document.getElementById(`copies-${i}`);
+                    
+                    if (!checkbox || !checkbox.checked || parseInt(copiesInput.value) !== 1) {
+                        needsModification = true;
+                        break;
+                    }
+                }
+
+                if (needsModification) {
+                    try {
+                        printBtnText.innerHTML = '<span class="loading"></span>Criando PDF modificado...';
+                        const modifiedFile = await createModifiedPDF();
+                        
+                        if (modifiedFile) {
+                            fileToSend = modifiedFile;
+                            usedModification = true;
+                            console.log('Using modified PDF for printing');
+                        }
+                    } catch (modificationError) {
+                        console.warn('PDF modification failed, using original:', modificationError);
+                        
+                        if (modificationError.message.includes('não é compatível')) {
+                            showMessage('⚠️ PDF será enviado sem modificações (páginas não suportadas para edição)', 'warning');
+                        } else {
+                            showMessage(`⚠️ Erro na modificação, enviando arquivo original: ${modificationError.message}`, 'warning');
+                        }
+                        
+                        // Continue with original file
+                        fileToSend = uploadedFile;
+                    }
+                }
+            }
+
+            printBtnText.innerHTML = '<span class="loading"></span>Enviando para impressão...';
+
+            const formData = new FormData();
+            formData.append('file', fileToSend);
+            
+            // Add print options
+            const printType = document.querySelector('input[name="printType"]:checked')?.value || 'normal';
+            const quality = document.querySelector('input[name="quality"]:checked')?.value || 'normal';
+            
+            formData.append('printType', printType);
+            formData.append('quality', quality);
+            
+            // Add metadata about modification
+            formData.append('wasModified', usedModification.toString());
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.text();
+
+            if (response.ok) {
+                const successMessage = usedModification 
+                    ? '✅ PDF modificado enviado para impressão com sucesso!'
+                    : '✅ Arquivo enviado para impressão com sucesso!';
+                
+		  showMessage(successMessage, 'success');
+                
+		setTimeout(() => {
+		finalizePurchase();
+		}, 2000);
+              
+                // Reset form after success
+                setTimeout(() => {
+                    resetForm();
+                }, 3000);
+            } else {
+                throw new Error(result);
+            }
+
+        } catch (error) {
+            console.error('Erro:', error);
+            showMessage(`❌ Erro ao imprimir: ${error.message}`, 'error');
+
+        } finally {
+            // Re-enable button
+            printBtn.disabled = false;
+            printBtnText.innerHTML = '🖨️ Enviar para Impressão';
+        }
+    }
+
+    function showMessage(message, type) {
+        const statusDiv = document.getElementById('printStatus');
+        let className, styles;
+        
+        switch(type) {
+            case 'success':
+                className = 'success-message';
+                styles = 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;';
+                break;
+            case 'warning':
+                className = 'warning-message';
+                styles = 'background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;';
+                break;
+            case 'error':
+            default:
+                className = 'error-message';
+                styles = 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;';
+                break;
+        }
+        
+        statusDiv.innerHTML = `<div class="${className}" style="padding: 15px; margin: 10px 0; border-radius: 5px; ${styles}">${message}</div>`;
+        
+        // Auto-hide after 5 seconds for success messages, 8 seconds for warnings
+        if (type === 'success') {
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        } else if (type === 'warning') {
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 8000);
+        }
+    }
+
+        function setupPaymentOptions() {
+            document.querySelectorAll('.payment-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    this.querySelector('input[type="radio"]').checked = true;
+                });
+            });
+        }
+
+    function resetForm() {
+        // Reset all form elements
+        document.getElementById('uploadForm').reset();
+        document.getElementById('filePreview').style.display = 'none';
+        document.getElementById('nextStep1').classList.add('hidden');
+        document.getElementById('printStatus').innerHTML = '';
+        document.getElementById('pdfPreviewContainer').style.display = 'none';
+        
+        // Reset radio buttons to default
+        document.querySelector('input[name="printType"][value="normal"]').checked = true;
+        document.querySelector('input[name="quality"][value="normal"]').checked = true;
+        
+        // Clear PDF data
+        pdfDocument = null;
+        pageData = [];
+        originalPdfBytes = null;
+        
+        // Go back to step 1
+        uploadedFile = null;
+        goToStep(1);
+    }
+
+    function finalizePurchase() {
+            const selectedPayment = document.querySelector('input[name="payment"]:checked');
+            if (!selectedPayment) {
+                alert('Por favor, selecione um método de pagamento.');
+                return;
+            }
+
+            // Show success animation
+            document.body.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+                    <div style="background: white; padding: 50px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); animation: fadeInUp 0.8s ease-out;">
+                        <div style="font-size: 4em; color: #16a34a; margin-bottom: 20px;">✅</div>
+                        <h2 style="color: #1e3a8a; margin-bottom: 20px;">Pedido Confirmado!</h2>
+                        <p style="color: #64748b; font-size: 1.2em;">Seu pedido foi enviado com sucesso. Você receberá as instruções de pagamento em breve.</p>
+                        <button onclick="location.reload()" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; border: none; padding: 15px 30px; border-radius: 25px; margin-top: 30px; cursor: pointer; font-size: 1.1em;">Fazer Novo Pedido</button>
+                    </div>
+                </div>
+            `;
+        }
+</script>
+</body>
+</html>
