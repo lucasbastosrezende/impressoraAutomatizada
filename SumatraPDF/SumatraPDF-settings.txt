@@ -79,7 +79,7 @@ SmoothScroll = false
 ShowStartPage = true
 CheckForUpdates = true
 WindowState = 1
-WindowPos = 0 0 0 0
+WindowPos = 566 0 788 1020
 UseTabs = true
 UseSysColors = false
 CustomScreenDPI = 0
@@ -89,6 +89,6 @@ FileStates [
 SessionData [
 ]
 TimeOfLastUpdateCheck = 0 0
-OpenCountWeek = 753
+OpenCountWeek = 792
 
 # Settings below are not recognized by the current version

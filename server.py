@@ -56,9 +56,13 @@ def upload_file():
     print_type = request.form.get('printType', 'normal')
     paper_size = request.form.get('paperSize', 'a4')
     orientation = request.form.get('orientation', 'portrait')
+    color_mode = request.form.get('colorMode', 'color')
+    page_fit = request.form.get('pageFit', 'fit')
+    copies = request.form.get('copies', '1')
     
     # Monta as settings do SumatraPDF
     settings = []
+    
     if print_type == 'duplex':
         settings.append("duplex")
         
@@ -69,6 +73,21 @@ def upload_file():
         
     if orientation == 'landscape':
         settings.append("landscape")
+        
+    if color_mode == 'monochrome':
+        settings.append("monochrome")
+    else:
+        settings.append("color")
+        
+    if page_fit in ['fit', 'shrink', 'noscale']:
+        settings.append(page_fit)
+        
+    try:
+        copies_num = int(copies)
+        if copies_num > 1:
+            settings.append(f"{copies_num}x")
+    except ValueError:
+        pass
         
     print_settings_str = ",".join(settings) if settings else None
 
