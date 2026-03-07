@@ -659,43 +659,12 @@
             </form>
         </div>
 
-        <!-- Step 2: PDF Preview -->
+        <!-- Step 2: PDF Preview & Print Options -->
         <div class="step hidden" id="step2">
-            <h2>Preview do PDF</h2>
-            <p style="margin: 0">Visualize as páginas e defina quantas cópias deseja imprimir de cada uma</p>
+            <h2>Preview do PDF & Opções</h2>
+            <p style="margin: 0">Configure as opções de impressão e defina as páginas</p>
 
-            <div id="pdfPreviewContainer" style="display: none;">
-                <div style="margin-bottom: 20px; display: flex; justify-content: space-between;">
-                    <div class="SelectAll" style="gap: 10px;">
-                        <input type="checkbox" onchange="selectAllPages()" id="checkado" checked> Selecionar
-                        Todas</input>
-                    </div>
-                    <div style="display:flex;">
-                        <label style="display: block; margin: 5px 0;font-size: 0.9em;">Definir Cópias para Todas</label>
-                        <input type="number" onchange="setAllCopies()" id="globalCopies" min="0" max="99" value="1"
-                            style="width: 60px; margin-left: 10px;">
-                    </div>
-                </div>
-
-                <div id="pagesContainer"></div>
-
-                <div style="margin-top: 20px;">
-                    <strong>Total de páginas selecionadas: <span id="totalSelectedPages">0</span></strong>
-                    <strong style="margin-left: 20px;">Total de cópias: <span id="totalCopies">0</span></strong>
-                </div>
-            </div>
-
-            <div id="stepbutton">
-                <button class="action-btn" onclick="goToStep(1)">Voltar</button>
-                <button class="action-btn primary" onclick="goToStep(3)">Continuar</button>
-            </div>
-        </div>
-
-        <!-- Step 3: Print Options -->
-        <div class="step hidden" id="step3">
-            <h2>Opções de Impressão</h2>
-            <p>Configure as opções de impressão do seu documento</p>
-
+            <!-- OPÇÕES DE IMPRESSÃO (Movidas do Step 3) -->
             <div class="options-section">
                 <div class="option-group">
                     <h3>Tipo de impressão:</h3>
@@ -758,15 +727,36 @@
                 </div>
             </div>
 
+            <div id="pdfPreviewContainer" style="display: none;">
+                <div style="margin-bottom: 20px; display: flex; justify-content: space-between;">
+                    <div class="SelectAll" style="gap: 10px;">
+                        <input type="checkbox" onchange="selectAllPages()" id="checkado" checked> Selecionar
+                        Todas</input>
+                    </div>
+                    <div style="display:flex;">
+                        <label style="display: block; margin: 5px 0;font-size: 0.9em;">Definir Cópias para Todas</label>
+                        <input type="number" onchange="setAllCopies()" id="globalCopies" min="0" max="99" value="1"
+                            style="width: 60px; margin-left: 10px;">
+                    </div>
+                </div>
+
+                <div id="pagesContainer"></div>
+
+                <div style="margin-top: 20px;">
+                    <strong>Total de páginas selecionadas: <span id="totalSelectedPages">0</span></strong>
+                    <strong style="margin-left: 20px;">Total de cópias: <span id="totalCopies">0</span></strong>
+                </div>
+            </div>
+
             <div id="stepbutton">
-                <button class="action-btn" onclick="goToStep(2)">Voltar</button>
-                <button class="action-btn primary" onclick="goToStep(4)">Continuar</button>
+                <button class="action-btn" onclick="goToStep(1)">Voltar</button>
+                <button class="action-btn primary" onclick="goToStep(3)">Resumo</button>
             </div>
         </div>
 
 
         <!-- Step 3: Summary and Print -->
-        <div class="step hidden" id="step4">
+        <div class="step hidden" id="step3">
             <div class="summary">
                 <h3>Resumo da Impressão:</h3>
                 <div class="summary-details" id="summaryDetails">
@@ -780,13 +770,13 @@
 
 
                 <div id="stepbutton">
-                    <button class="action-btn" onclick="goToStep(3)">Voltar</button>
-                    <button class="action-btn primary" onclick="goToStep(5)">Pagamento</button>
+                    <button class="action-btn" onclick="goToStep(2)">Voltar</button>
+                    <button class="action-btn primary" onclick="goToStep(4)">Pagamento</button>
                 </div>
             </div>
         </div>
 
-        <div class="step hidden" id="step5">
+        <div class="step hidden" id="step4">
             <h2>Pagamento</h2>
 
             <div class="payment-methods">
@@ -820,7 +810,7 @@
 
             <div id="stepbutton">
 
-                <button class="action-btn" onclick="goToStep(4)">Voltar</button>
+                <button class="action-btn" onclick="goToStep(3)">Voltar</button>
                 <button class="action-btn primary" id="printBtn" onclick="sendToPrint()">
                     <span id="printBtnText">🖨️ Imprimir</span>
                 </button>
