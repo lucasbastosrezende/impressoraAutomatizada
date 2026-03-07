@@ -664,87 +664,113 @@
             <h2>Preview do PDF & Opções</h2>
             <p style="margin: 0">Configure as opções de impressão e defina as páginas</p>
 
-            <!-- OPÇÕES DE IMPRESSÃO (Movidas do Step 3) -->
-            <div class="options-section">
-                <div class="option-group">
-                    <h3>Tipo de impressão:</h3>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="printType" value="normal" checked>
-                            <span>Impressão Normal</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="printType" value="duplex">
-                            <span>Frente e Verso (se disponível)</span>
-                        </label>
+            <div style="display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start;">
+                <!-- COLUNA ESQUERDA: OPÇÕES DE IMPRESSÃO -->
+                <div class="options-section" style="flex: 1; min-width: 300px; margin: 0;">
+                    <div class="option-group">
+                        <h3>Tipo de impressão:</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="printType" value="normal" checked>
+                                <span>Impressão Normal</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="printType" value="duplex">
+                                <span>Frente e Verso (se disponível)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <h3>Modo de Cor:</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="colorMode" value="color" checked>
+                                <span>Colorido</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="colorMode" value="monochrome">
+                                <span>Preto e Branco</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <h3>Ajuste na Página:</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="pageFit" value="fit" checked>
+                                <span>Ajustar à folha (Preencher)</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="pageFit" value="shrink">
+                                <span>Reduzir para caber</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="pageFit" value="noscale">
+                                <span>Tamanho Real (Sem escala)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <h3>Tamanho do Papel:</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="paperSize" value="a4" checked>
+                                <span>A4</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="paperSize" value="letter">
+                                <span>Carta</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="paperSize" value="legal">
+                                <span>Legal</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <h3>Orientação:</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="orientation" value="portrait" checked>
+                                <span>Retrato</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="orientation" value="landscape">
+                                <span>Paisagem</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
-                <div class="option-group">
-                    <h3>Qualidade:</h3>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="quality" value="normal" checked>
-                            <span>Normal</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="quality" value="high">
-                            <span>Alta Qualidade</span>
-                        </label>
+                <!-- COLUNA DIREITA: PREVIEW -->
+                <div id="pdfPreviewContainer" style="flex: 2; min-width: 400px; display: none; margin: 0; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: hidden; max-height: 80vh; overflow-y: auto;">
+                    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 10px;">
+                        <div class="SelectAll" style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" onchange="selectAllPages()" id="checkado" checked style="width: 18px; height: 18px;"> 
+                            <label for="checkado" style="font-weight: 600; cursor: pointer;">Selecionar Todas</label>
+                        </div>
+                        <div style="display:flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 0.9em; font-weight: 500;">Definir Cópias p/ Todas:</label>
+                            <input type="number" onchange="setAllCopies()" id="globalCopies" min="0" max="99" value="1"
+                                style="width: 60px; padding: 5px; border-radius: 8px; border: 1px solid #cbd5e1; text-align: center;">
+                        </div>
                     </div>
-                </div>
 
-                <div class="option-group">
-                    <h3>Tamanho do Papel:</h3>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="paperSize" value="a4" checked>
-                            <span>A4</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="paperSize" value="letter">
-                            <span>Carta</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="paperSize" value="legal">
-                            <span>Legal</span>
-                        </label>
+                    <!-- Div para visualização de imagens simples -->
+                    <div id="imagePreviewContainer" style="display: none; text-align: center; margin-top: 20px;">
+                        <canvas id="imagePreviewCanvas" style="max-width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></canvas>
                     </div>
-                </div>
 
-                <div class="option-group">
-                    <h3>Orientação:</h3>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="orientation" value="portrait" checked>
-                            <span>Retrato</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="orientation" value="landscape">
-                            <span>Paisagem</span>
-                        </label>
+                    <div id="pagesContainer"></div>
+
+                    <div style="margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 10px; display: flex; justify-content: space-around;">
+                        <strong>Páginas selecionadas: <span id="totalSelectedPages" style="color: #1e3a8a;">0</span></strong>
+                        <strong>Total de cópias: <span id="totalCopies" style="color: #1e3a8a;">0</span></strong>
                     </div>
-                </div>
-            </div>
-
-            <div id="pdfPreviewContainer" style="display: none;">
-                <div style="margin-bottom: 20px; display: flex; justify-content: space-between;">
-                    <div class="SelectAll" style="gap: 10px;">
-                        <input type="checkbox" onchange="selectAllPages()" id="checkado" checked> Selecionar
-                        Todas</input>
-                    </div>
-                    <div style="display:flex;">
-                        <label style="display: block; margin: 5px 0;font-size: 0.9em;">Definir Cópias para Todas</label>
-                        <input type="number" onchange="setAllCopies()" id="globalCopies" min="0" max="99" value="1"
-                            style="width: 60px; margin-left: 10px;">
-                    </div>
-                </div>
-
-                <div id="pagesContainer"></div>
-
-                <div style="margin-top: 20px;">
-                    <strong>Total de páginas selecionadas: <span id="totalSelectedPages">0</span></strong>
-                    <strong style="margin-left: 20px;">Total de cópias: <span id="totalCopies">0</span></strong>
                 </div>
             </div>
 
@@ -764,7 +790,8 @@
                     <div><strong>Páginas selecionadas:</strong> <span id="summarySelectedPages">-</span></div>
                     <div><strong>Total de cópias:</strong> <span id="summaryTotalCopies">-</span></div>
                     <div><strong>Tipo:</strong> <span id="summaryPrintType">Impressão Normal</span></div>
-                    <div><strong>Qualidade:</strong> <span id="summaryQuality">Normal</span></div>
+                    <div><strong>Modo de Cor:</strong> <span id="summaryColor">Colorido</span></div>
+                    <div><strong>Ajuste:</strong> <span id="summaryFit">Ajustar à folha</span></div>
                     <div><strong>Valor Total:</strong> <span id="summaryValue">Normal</span></div>
                 </div>
 
@@ -834,6 +861,18 @@
         document.addEventListener('DOMContentLoaded', function () {
             setupFileUpload();
             setupPaymentOptions();
+            
+            // Re-render preview when orientation or color mode changes
+            document.querySelectorAll('input[name="orientation"], input[name="colorMode"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (uploadedFile && uploadedFile.type === 'application/pdf') {
+                        renderPDFPages();
+                    } else if (uploadedFile && uploadedFile.type.includes('image')) {
+                        updateImageOrientation();
+                        applyImageColorMode();
+                    }
+                });
+            });
         });
 
         function setupFileUpload() {
@@ -886,17 +925,89 @@
             document.getElementById('filePreview').style.display = 'block';
             document.getElementById('nextStep1').classList.remove('hidden');
 
+            // Reset visibility
+            document.getElementById('pagesContainer').style.display = 'grid';
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+
             // If it's a PDF, load it for preview
             if (file.type === 'application/pdf') {
                 await loadPDF(file);
+            } else if (file.type.includes('image')) {
+                // If it's an image, use basic preview
+                loadImagePreview(file);
+            } else {
+                // Documents that cannot be visually previewed (doc, docx, txt)
+                document.getElementById('pdfPreviewContainer').style.display = 'block';
+                document.getElementById('pagesContainer').innerHTML = '<div style="padding: 40px; text-align: center; color: #4b5563;">Visualização não disponível para este tipo de arquivo.<br>Suas opções de impressão serão aplicadas normalmente.</div>';
+                updateTotals(1, 1);
             }
+        }
+
+        function loadImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    window.currentImageObj = img;
+                    document.getElementById('pagesContainer').style.display = 'none';
+                    document.getElementById('imagePreviewContainer').style.display = 'block';
+                    updateImageOrientation();
+                    updateTotals(1, 1);
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function updateImageOrientation() {
+            if (!window.currentImageObj) return;
+            const img = window.currentImageObj;
+            const canvas = document.getElementById('imagePreviewCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const orientation = document.querySelector('input[name="orientation"]:checked').value;
+            const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
+            
+            // Limit max dimensions for performance while keeping preview quality
+            const MAX_SIZE = 1200;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > MAX_SIZE || height > MAX_SIZE) {
+                const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+                width = width * ratio;
+                height = height * ratio;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (orientation === 'landscape') {
+                canvas.width = height;
+                canvas.height = width;
+                ctx.translate(height / 2, width / 2);
+                ctx.rotate(-90 * Math.PI / 180);
+                if (colorMode === 'monochrome') ctx.filter = 'grayscale(100%)';
+                else ctx.filter = 'none';
+                ctx.drawImage(img, -width / 2, -height / 2, width, height);
+            } else {
+                canvas.width = width;
+                canvas.height = height;
+                if (colorMode === 'monochrome') ctx.filter = 'grayscale(100%)';
+                else ctx.filter = 'none';
+                ctx.drawImage(img, 0, 0, width, height);
+            }
+        }
+
+        function applyImageColorMode() {
+            updateImageOrientation(); // Canvas redraws apply the color instantly
         }
 
         async function loadPDF(file) {
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 originalPdfBytes = arrayBuffer; // Store as ArrayBuffer for PDF-lib
-                pdfDocument = await pdfjsLib.getDocument(arrayBuffer).promise;
+                const typedArray = new Uint8Array(arrayBuffer);
+                pdfDocument = await pdfjsLib.getDocument(typedArray).promise;
 
                 // Test if PDF-lib can also load this PDF
                 try {
@@ -983,6 +1094,9 @@
 
                 // Create new PDF document
                 const newPdfDoc = await PDFLib.PDFDocument.create();
+                
+                // Get orientation setting
+                const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
 
                 // Copy selected pages to new document
                 console.log('Copying pages to new document...');
@@ -990,6 +1104,13 @@
 
                 // Add pages to new document
                 copiedPages.forEach((page, index) => {
+                    // Apply rotation if landscape
+                    if (orientation === 'landscape') {
+                        // PDF-lib rotate gets applied around the center usually, 
+                        // sometimes swapping width/height or setting Degrees is needed
+                        page.setRotation(PDFLib.degrees(90));
+                    }
+                    
                     newPdfDoc.addPage(page);
                     console.log(`Added page ${selectedPages[index] + 1} to new document`);
                 });
@@ -1022,6 +1143,14 @@
 
             const container = document.getElementById('pagesContainer');
             container.innerHTML = '';
+            
+            // Check orientation to apply visual rotation
+            const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
+            const rotationDegree = orientation === 'landscape' ? 270 : 0; // Rotate 90deg left for landscape
+
+            // Check color mode to apply visual filter
+            const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
+            const filterCss = colorMode === 'monochrome' ? 'filter: grayscale(100%);' : '';
 
             for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
                 const pageDiv = document.createElement('div');
@@ -1043,9 +1172,11 @@
                 const canvas = document.createElement('canvas');
                 canvas.style.cssText = `
                 max-width: 100%;
+                height: auto;
                 border: 1px solid #ddd;
                 display: block;
                 margin: 0 auto 10px auto;
+                ${filterCss}
             `;
 
                 // Page number label
@@ -1064,11 +1195,15 @@
                 pageOptions.className = "page-options";
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.checked = true;
+                // Preserve previous selection state if possible
+                const exisitngData = pageData.find(p => p.pageNum === pageNum);
+                checkbox.checked = exisitngData ? exisitngData.selected : true;
                 checkbox.id = `page-${pageNum}`;
                 checkbox.addEventListener('change', () => {
                     updateTotals();
                     updatePageVisualState(pageDiv, checkbox.checked);
+                    const pd = pageData.find(p => p.pageNum === pageNum);
+                    if(pd) pd.selected = checkbox.checked;
                 });
 
                 const checkboxLabel = document.createElement('label');
@@ -1093,14 +1228,18 @@
                 copiesInput.type = 'number';
                 copiesInput.min = '0';
                 copiesInput.max = '99';
-                copiesInput.value = '1';
+                copiesInput.value = exisitngData ? exisitngData.copies : '1';
                 copiesInput.id = `copies-${pageNum}`;
                 copiesInput.style.cssText = `
                 width: 50px;
                 padding: 2px;
                 text-align: center;
             `;
-                copiesInput.addEventListener('change', updateTotals);
+                copiesInput.addEventListener('change', () => {
+                    updateTotals();
+                    const pd = pageData.find(p => p.pageNum === pageNum);
+                    if(pd) pd.copies = parseInt(copiesInput.value) || 0;
+                });
 
                 // Assemble page div
                 pageDiv.appendChild(pageLabel);
@@ -1118,8 +1257,9 @@
                 // Render PDF page
                 try {
                     const page = await pdfDocument.getPage(pageNum);
-                    const scale = 0.5;
-                    const viewport = page.getViewport({ scale });
+                    const scale = 0.5; // Scale down for preview
+                    // Add rotation if it's landscape!
+                    const viewport = page.getViewport({ scale, rotation: rotationDegree });
 
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
@@ -1190,7 +1330,14 @@
             updateTotals();
         }
 
-        function updateTotals() {
+        function updateTotals(overridePages = null, overrideCopies = null) {
+            // Se for chamada com valores fixos (ex: imagens), atualiza e sai
+            if (overridePages !== null) {
+                document.getElementById('totalSelectedPages').textContent = overridePages;
+                document.getElementById('totalCopies').textContent = overrideCopies;
+                return;
+            }
+
             if (!pdfDocument) return;
 
             let selectedPages = 0;
@@ -1220,11 +1367,14 @@
             setTimeout(async () => {
                 document.getElementById(`step${stepNum}`).classList.remove('hidden');
 
-                // If going to step 2 and we have a PDF, show preview
-                if (stepNum === 2 && pdfDocument) {
-                    document.getElementById('pdfPreviewContainer').style.display = 'block';
+                // If going to step 2 and we have a file, show preview block
+            if (stepNum === 2 && uploadedFile) {
+                document.getElementById('pdfPreviewContainer').style.display = 'block';
+                // If it's a PDF, render properly. If it's image, the preview was already set inside `handleFileUpload`
+                if (pdfDocument) {
                     await renderPDFPages();
                 }
+            }
 
                 // Update summary if going to step 3
                 if (stepNum === 3) {
@@ -1243,11 +1393,18 @@
 
         function updateSummary() {
             const printType = document.querySelector('input[name="printType"]:checked')?.value || 'normal';
-            const quality = document.querySelector('input[name="quality"]:checked')?.value || 'normal';
+            const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
+            const pageFit = document.querySelector('input[name="pageFit"]:checked')?.value || 'fit';
 
             document.getElementById('summaryFileName').textContent = uploadedFile ? uploadedFile.name : '-';
             document.getElementById('summaryPrintType').textContent = printType === 'duplex' ? 'Frente e Verso' : 'Impressão Normal';
-            document.getElementById('summaryQuality').textContent = quality === 'high' ? 'Alta Qualidade' : 'Normal';
+            
+            document.getElementById('summaryColor').textContent = colorMode === 'monochrome' ? 'Preto e Branco' : 'Colorido';
+            
+            let fitText = 'Ajustar à folha';
+            if (pageFit === 'shrink') fitText = 'Reduzir para caber';
+            if (pageFit === 'noscale') fitText = 'Tamanho Real';
+            document.getElementById('summaryFit').textContent = fitText;
 
             // Update page and copy counts
             const selectedPages = document.getElementById('totalSelectedPages').textContent;
@@ -1280,17 +1437,26 @@
                 let fileToSend = uploadedFile;
                 let usedModification = false;
 
-                // If it's a PDF and we have pages selected/deselected, create modified PDF
+                // If it's a PDF, check if we need to modify pages (selection, copies, rotation)
                 if (uploadedFile.type === 'application/pdf' && pdfDocument) {
-                    // Check if all pages are selected with 1 copy each
                     let needsModification = false;
-                    for (let i = 1; i <= pdfDocument.numPages; i++) {
-                        const checkbox = document.getElementById(`page-${i}`);
-                        const copiesInput = document.getElementById(`copies-${i}`);
+                    
+                    // Always modify if landscape is needed
+                    const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
+                    if (orientation === 'landscape') {
+                        needsModification = true;
+                    }
 
-                        if (!checkbox || !checkbox.checked || parseInt(copiesInput.value) !== 1) {
-                            needsModification = true;
-                            break;
+                    // Check if pages are not completely default
+                    if (!needsModification) {
+                        for (let i = 1; i <= pdfDocument.numPages; i++) {
+                            const checkbox = document.getElementById(`page-${i}`);
+                            const copiesInput = document.getElementById(`copies-${i}`);
+
+                            if (!checkbox || !checkbox.checked || parseInt(copiesInput.value) !== 1) {
+                                needsModification = true;
+                                break;
+                            }
                         }
                     }
 
@@ -1326,14 +1492,23 @@
 
                 // Add print options
                 const printType = document.querySelector('input[name="printType"]:checked')?.value || 'normal';
-                const quality = document.querySelector('input[name="quality"]:checked')?.value || 'normal';
                 const paperSize = document.querySelector('input[name="paperSize"]:checked')?.value || 'a4';
                 const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
+                const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
+                const pageFit = document.querySelector('input[name="pageFit"]:checked')?.value || 'fit';
 
                 formData.append('printType', printType);
-                formData.append('quality', quality);
                 formData.append('paperSize', paperSize);
                 formData.append('orientation', orientation);
+                formData.append('colorMode', colorMode);
+                formData.append('pageFit', pageFit);
+                
+                let copiesToSend = 1;
+                if (!usedModification && uploadedFile && uploadedFile.type.includes('image')) {
+                    const totalCopies = document.getElementById('totalCopies').textContent;
+                    copiesToSend = parseInt(totalCopies) || 1;
+                }
+                formData.append('copies', copiesToSend);
 
                 // Add metadata about modification
                 formData.append('wasModified', usedModification.toString());
@@ -1429,7 +1604,8 @@
 
             // Reset radio buttons to default
             document.querySelector('input[name="printType"][value="normal"]').checked = true;
-            document.querySelector('input[name="quality"][value="normal"]').checked = true;
+            document.querySelector('input[name="colorMode"][value="color"]').checked = true;
+            document.querySelector('input[name="pageFit"][value="fit"]').checked = true;
             document.querySelector('input[name="paperSize"][value="a4"]').checked = true;
             document.querySelector('input[name="orientation"][value="portrait"]').checked = true;
 
