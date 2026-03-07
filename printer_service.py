@@ -29,9 +29,24 @@ class PrinterService:
             pdf_path = file_path.rsplit('.', 1)[0] + '.pdf'
             try:
                 image = Image.open(file_path)
-                # Converte para RGB se necessário (por exemplo, imagens RGBA/PNG)
-                if image.mode != 'RGB':
+                
+                # Check if we should convert to black and white
+                is_monochrome = print_settings and 'monochrome' in print_settings.lower()
+                
+                if is_monochrome:
+                    image = image.convert('L') # Convert to grayscale
+                elif image.mode != 'RGB':
                     image = image.convert('RGB')
+                    
+                # Física: rotacionar se for paisagem
+                is_landscape = print_settings and 'landscape' in print_settings.lower()
+                if is_landscape:
+                    # Gira 90 graus para ficar deitado (paisagem física)
+                    if hasattr(Image, 'Transpose'):
+                        image = image.transpose(Image.Transpose.ROTATE_90)
+                    else:
+                        image = image.transpose(Image.ROTATE_90)
+                    
                 image.save(pdf_path, 'PDF', resolution=100.0)
                 file_path = pdf_path # Atualiza para apontar para o novo PDF
             except Exception as e:
