@@ -199,41 +199,52 @@
         </div>
 
         <div class="step hidden" id="step4">
-            <h2>Pagamento</h2>
-
-            <div class="payment-methods">
-                <div class="payment-option" data-method="pix">
-                    <input type="radio" name="payment" value="pix"
-                        style="width: 20px; height: 20px; accent-color: #1e3a8a;">
-                    <span style="font-size: 1.2em;">Pix</span>
-                </div>
-                <div class="payment-option" data-method="credit">
-                    <input type="radio" name="payment" value="credit"
-                        style="width: 20px; height: 20px; accent-color: #1e3a8a;">
-                    <span style="font-size: 1.2em;">Cartão de Crédito</span>
-                </div>
-                <div class="payment-option" data-method="debit">
-                    <input type="radio" name="payment" value="debit"
-                        style="width: 20px; height: 20px; accent-color: #1e3a8a;">
-                    <span style="font-size: 1.2em;">Cartão de Débito</span>
-                </div>
-            </div>
+            <h2>Pagamento via Pix</h2>
 
             <div style="font-size: 1.5em; color: #1e3a8a; margin-bottom: 20px;"><strong>Valor:</strong></div>
             <div class="price"></div>
 
-            <div
-                style="background: #fef3c7; border-radius: 10px; padding: 20px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-                <p style="color: #92400e; font-weight: 500;">*Para pagamentos no dinheiro, terá de ser feito
-                    pessoalmente, sem acesso a este site</p>
+            <!-- Loading enquanto gera o QR -->
+            <div id="pixLoading" style="text-align: center; margin: 30px 0; display: none;">
+                <span class="loading"></span>
+                <p style="color: #64748b; margin-top: 10px;">Gerando QR Code Pix...</p>
+            </div>
+
+            <!-- Container do QR Code Pix -->
+            <div id="pixQrContainer" style="display: none; text-align: center; margin: 25px 0; padding: 25px; background: #f0f9ff; border-radius: 15px; border: 2px solid #bfdbfe;">
+                <h3 style="color: #1e3a8a; margin-bottom: 15px;">📱 Escaneie o QR Code para pagar</h3>
+                <div id="pixQrImage" style="margin: 15px auto;">
+                    <img id="pixQrImg" src="" alt="QR Code Pix" style="max-width: 280px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                </div>
+                <div style="margin-top: 15px;">
+                    <p style="font-weight: 600; color: #374151; margin-bottom: 8px;">Ou copie o código Pix (Copia e Cola):</p>
+                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="pixCopiaCola" readonly
+                            style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; width: 300px; font-size: 0.85em; background: #fff; text-overflow: ellipsis;">
+                        <button type="button" onclick="copyPixCode()" id="copyPixBtn"
+                            style="padding: 10px 18px; background: #1e3a8a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
+                            📋 Copiar
+                        </button>
+                    </div>
+                </div>
+                <div id="pixPaymentStatus" style="margin-top: 20px; padding: 12px; border-radius: 10px; font-weight: 600; display: none;"></div>
+            </div>
+
+            <!-- Confirmação manual para QR estático -->
+            <div id="pixManualConfirm" style="display: none; text-align: center; margin: 15px 0;">
+                <div style="background: #fef3c7; border-radius: 10px; padding: 15px; border-left: 4px solid #f59e0b; margin-bottom: 15px;">
+                    <p style="color: #92400e; font-weight: 500; margin: 0;">⚠️ QR Code estático: Após efetuar o pagamento, clique em "Confirmar Pagamento" para liberar a impressão.</p>
+                </div>
+                <button type="button" onclick="confirmManualPayment()" class="action-btn primary">
+                    ✅ Confirmar Pagamento
+                </button>
             </div>
 
             <div id="printStatus"></div>
 
             <div id="stepbutton">
-
                 <button class="action-btn" onclick="goToStep(3)">Voltar</button>
-                <button class="action-btn primary" id="printBtn" onclick="sendToPrint()">
+                <button class="action-btn primary hidden" id="printBtn" onclick="sendToPrint()">
                     <span id="printBtnText">🖨️ Imprimir</span>
                 </button>
             </div>
