@@ -1,0 +1,28 @@
+# Arquivos de ambiente
+.env
+
+# Diretórios virtuais Python
+venv/
+env/
+.venv/
+
+# Caches e arquivos compilados
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Documentos do usuário (nunca devem ir para o git)
+uploads/
+*.pdf
+*.docx
+*.doc
+*.png
+*.jpg
+*.jpeg
+
+# Pastas de IDE e SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
