@@ -1,9 +1,11 @@
 import os
-from flask import Flask, render_template, request, jsonify
-from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
+import uuid
+from flask import Flask, render_template, request, jsonify  # pyre-ignore[21]
+from werkzeug.utils import secure_filename  # pyre-ignore[21]
+from dotenv import load_dotenv  # pyre-ignore[21]
 
-from printer_service import PrinterService
+from printer_service import PrinterService  # pyre-ignore[21]
+from pix_service import PixService  # pyre-ignore[21]
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -26,6 +28,26 @@ else:
 # Inicializa o serviço de impressão
 printer_service = PrinterService(SUMATRA_PATH, DEFAULT_PRINTER)
 
+# Inicializa o serviço de Pix
+MP_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_ACCESS_TOKEN", "")
+PIX_KEY = os.getenv("PIX_KEY", "")
+PIX_MERCHANT_NAME = os.getenv("PIX_MERCHANT_NAME", "Capital Papelaria")
+PIX_MERCHANT_CITY = os.getenv("PIX_MERCHANT_CITY", "Brasilia")
+
+pix_service = PixService(
+    access_token=MP_ACCESS_TOKEN,
+    pix_key=PIX_KEY,
+    merchant_name=PIX_MERCHANT_NAME,
+    merchant_city=PIX_MERCHANT_CITY
+)
+
+if pix_service.has_mp:
+    print("✅ Mercado Pago configurado — verificação automática de Pix ativada")
+elif PIX_KEY:
+    print("⚠️  Mercado Pago NÃO configurado — usando QR Code estático (sem verificação automática)")
+else:
+    print("❌ Nenhuma chave Pix configurada no .env")
+
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'bmp', 'tiff'}
 
 def allowed_file(filename):
@@ -34,6 +56,67 @@ def allowed_file(filename):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/generate-pix', methods=['POST'])
+def generate_pix():
+    """Gera cobrança Pix (dinâmica via MP ou estática como fallback)."""
+    data = request.get_json()
+    if not data or 'amount' not in data:
+        return jsonify({"status": "error", "message": "Valor não informado."}), 400
+
+    try:
+        amount = float(data['amount'])
+        if amount <= 0:
+            return jsonify({"status": "error", "message": "Valor deve ser maior que zero."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"status": "error", "message": "Valor inválido."}), 400
+
+    try:
+        if pix_service.has_mp:
+            # Mercado Pago — cobrança dinâmica com verificação automática
+            result = pix_service.create_payment(amount)
+            return jsonify({
+                "status": "success",
+                "mode": "mercadopago",
+                "payment_id": result["payment_id"],
+                "qr_base64": result["qr_base64"],
+                "copia_cola": result["copia_cola"],
+                "payment_status": result["status"],
+                "amount": result["amount"]
+            }), 200
+        elif pix_service.pix_key:
+            # Fallback — QR estático
+            txid = uuid.uuid4().hex[:25]  # pyre-ignore
+            result = pix_service.generate_static_qr(amount, txid)
+            return jsonify({
+                "status": "success",
+                "mode": "static",
+                "payment_id": None,
+                "qr_base64": result["qr_base64"],
+                "copia_cola": result["copia_cola"],
+                "payment_status": "static",
+                "amount": result["amount"]
+            }), 200
+        else:
+            return jsonify({"status": "error", "message": "Nenhuma chave Pix configurada no .env"}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Erro ao gerar Pix: {str(e)}"}), 500
+
+@app.route('/check-payment/<int:payment_id>', methods=['GET'])
+def check_payment(payment_id):
+    """Consulta o status de um pagamento no Mercado Pago."""
+    if not pix_service.has_mp:
+        return jsonify({"status": "error", "message": "Mercado Pago não configurado"}), 500
+
+    try:
+        result = pix_service.check_payment(payment_id)
+        return jsonify({
+            "status": "success",
+            "payment_status": result["status"],
+            "status_detail": result["status_detail"]
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -96,6 +179,14 @@ def upload_file():
         return jsonify({"status": "success", "message": "Arquivo enviado para impressão com sucesso!"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        # Garante a exclusão do arquivo, seja após o sucesso ou em caso de erro.
+        try:
+            if os.path.exists(abs_file_path):
+                os.remove(abs_file_path)
+                print(f"🔒 Arquivo apagado por segurança: {abs_file_path}")
+        except Exception as cleanup_error:
+            print(f"⚠️ Erro ao apagar o arquivo {abs_file_path}: {cleanup_error}")
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
