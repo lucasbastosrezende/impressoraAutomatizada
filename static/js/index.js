@@ -1,884 +1,827 @@
-// Set PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// Configura o arquivo auxiliar do PDF.js. Sem isso, a biblioteca não renderiza PDFs corretamente.
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-let currentStep = 1;
-let uploadedFile = null;
-let pdfDocument = null;
-let pageData = [];
-let originalPdfBytes = null;
+// Valor cobrado por cópia. A banca pode alterar este número para simular outros preços.
+const VALOR_POR_COPIA = 0.50;
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function () {
-    setupFileUpload();
-    
-    // Re-render preview when orientation or color mode changes
-    document.querySelectorAll('input[name="orientation"], input[name="colorMode"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (uploadedFile && uploadedFile.type === 'application/pdf') {
-                renderPDFPages();
-            } else if (uploadedFile && uploadedFile.type.includes('image')) {
-                updateImageOrientation();
-                applyImageColorMode();
+// Variáveis principais que guardam o estado atual da tela.
+let etapaAtual = 1;
+let arquivoSelecionado = null;
+let documentoPdf = null;
+let dadosPaginas = [];
+let bytesPdfOriginal = null;
+let imagemAtual = null;
+let intervaloVerificacaoPix = null;
+let idPagamentoAtual = null;
+
+// Quando a página termina de carregar, registramos os eventos da interface.
+document.addEventListener("DOMContentLoaded", function () {
+    configurarEnvioArquivo();
+
+    // Sempre que orientação ou cor mudam, a prévia precisa ser redesenhada.
+    document.querySelectorAll('input[name="orientacao"], input[name="modoCor"]').forEach((opcao) => {
+        opcao.addEventListener("change", () => {
+            if (arquivoSelecionado && arquivoSelecionado.type === "application/pdf") {
+                renderizarPaginasPdf();
+            } else if (arquivoSelecionado && arquivoSelecionado.type.includes("image")) {
+                atualizarVisualizacaoImagem();
             }
         });
     });
 });
 
-function setupFileUpload() {
-    const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('fileInput');
+function obterValorSelecionado(nomeCampo, valorPadrao) {
+    // Lê o valor marcado em um grupo de radio. Se nada estiver marcado, usa o padrão.
+    return document.querySelector(`input[name="${nomeCampo}"]:checked`)?.value || valorPadrao;
+}
 
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
+function configurarEnvioArquivo() {
+    // Prepara clique, arrastar e soltar para o campo de arquivo.
+    const areaEnvio = document.getElementById("areaEnvio");
+    const campoArquivo = document.getElementById("campoArquivo");
+
+    areaEnvio.addEventListener("dragover", (evento) => {
+        evento.preventDefault();
+        areaEnvio.classList.add("arrastando-arquivo");
     });
 
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
+    areaEnvio.addEventListener("dragleave", () => {
+        areaEnvio.classList.remove("arrastando-arquivo");
     });
 
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            fileInput.files = files;
-            handleFileUpload(files[0]);
+    areaEnvio.addEventListener("drop", (evento) => {
+        evento.preventDefault();
+        areaEnvio.classList.remove("arrastando-arquivo");
+
+        const arquivos = evento.dataTransfer.files;
+        if (arquivos.length > 0) {
+            campoArquivo.files = arquivos;
+            lidarComArquivoSelecionado(arquivos[0]);
         }
     });
 
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleFileUpload(e.target.files[0]);
+    campoArquivo.addEventListener("change", (evento) => {
+        if (evento.target.files.length > 0) {
+            lidarComArquivoSelecionado(evento.target.files[0]);
         }
     });
 }
 
-async function handleFileUpload(file) {
-    uploadedFile = file;
-    const fileName = file.name;
-    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+async function lidarComArquivoSelecionado(arquivo) {
+    // Guarda o arquivo escolhido e atualiza a primeira etapa da interface.
+    arquivoSelecionado = arquivo;
+    documentoPdf = null;
+    dadosPaginas = [];
+    bytesPdfOriginal = null;
+    imagemAtual = null;
 
-    if (uploadedFile) {
-        document.getElementById("HideFilled").style.display = "none";
-    }
+    const tamanhoEmMb = (arquivo.size / 1024 / 1024).toFixed(2);
 
-    // Determine file icon based on type
-    let fileIcon = '📄';
-    if (file.type.includes('pdf')) fileIcon = '📋';
-    else if (file.type.includes('image')) fileIcon = '🖼️';
-    else if (file.type.includes('word')) fileIcon = '📝';
+    document.getElementById("textoArquivoPendente").style.display = "none";
+    document.getElementById("nomeArquivo").textContent = arquivo.name;
+    document.getElementById("tamanhoArquivo").textContent = `${tamanhoEmMb} MB`;
+    document.getElementById("previsualizacaoArquivo").style.display = "block";
+    document.getElementById("botaoContinuarEtapa1").classList.remove("oculto");
 
-    document.getElementById('fileName').textContent = `${fileIcon} ${fileName}`;
-    document.getElementById('fileSize').textContent = `📊 ${fileSize} MB`;
-    document.getElementById('filePreview').style.display = 'block';
-    document.getElementById('nextStep1').classList.remove('hidden');
+    document.getElementById("conteinerPaginas").style.display = "grid";
+    document.getElementById("conteinerVisualizacaoImagem").style.display = "none";
+    document.getElementById("copiasGlobais").value = "1";
 
-    // Reset visibility
-    document.getElementById('pagesContainer').style.display = 'grid';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-
-    // If it's a PDF, load it for preview
-    if (file.type === 'application/pdf') {
-        await loadPDF(file);
-    } else if (file.type.includes('image')) {
-        // If it's an image, use basic preview
-        loadImagePreview(file);
+    if (arquivo.type === "application/pdf") {
+        await carregarPdf(arquivo);
+    } else if (arquivo.type.includes("image")) {
+        carregarVisualizacaoImagem(arquivo);
     } else {
-        // Documents that cannot be visually previewed (doc, docx, txt)
-        document.getElementById('pdfPreviewContainer').style.display = 'block';
-        document.getElementById('pagesContainer').innerHTML = '<div style="padding: 40px; text-align: center; color: #4b5563;">Visualização não disponível para este tipo de arquivo.<br>Suas opções de impressão serão aplicadas normalmente.</div>';
-        updateTotals(1, 1);
+        // DOC, DOCX e TXT são enviados para impressão, mas não possuem prévia visual no navegador.
+        document.getElementById("conteinerVisualizacao").style.display = "block";
+        document.getElementById("conteinerPaginas").innerHTML = `
+            <div class="mensagem-sem-previa">
+                Visualização não disponível para este tipo de arquivo.<br>
+                As opções escolhidas serão aplicadas normalmente.
+            </div>
+        `;
+        atualizarTotais(1, 1);
     }
 }
 
-// Function to remove selected file
-function removeFile() {
-    uploadedFile = null;
-    pdfDocument = null;
-    pageData = [];
-    originalPdfBytes = null;
-    window.currentImageObj = null;
+function removerArquivo() {
+    // Limpa tudo que depende do arquivo escolhido.
+    arquivoSelecionado = null;
+    documentoPdf = null;
+    dadosPaginas = [];
+    bytesPdfOriginal = null;
+    imagemAtual = null;
 
-    // Reset UI elements
-    document.getElementById('fileInput').value = '';
-    document.getElementById('filePreview').style.display = 'none';
-    document.getElementById('nextStep1').classList.add('hidden');
-    document.getElementById("HideFilled").style.display = "block";
-    document.getElementById('pdfPreviewContainer').style.display = 'none';
-    document.getElementById('pagesContainer').innerHTML = '';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    
-    // Clear status
-    document.getElementById('printStatus').innerHTML = '';
+    document.getElementById("campoArquivo").value = "";
+    document.getElementById("previsualizacaoArquivo").style.display = "none";
+    document.getElementById("botaoContinuarEtapa1").classList.add("oculto");
+    document.getElementById("textoArquivoPendente").style.display = "block";
+    document.getElementById("conteinerVisualizacao").style.display = "none";
+    document.getElementById("conteinerPaginas").innerHTML = "";
+    document.getElementById("conteinerVisualizacaoImagem").style.display = "none";
+    document.getElementById("copiasGlobais").value = "1";
+    document.getElementById("situacaoImpressao").innerHTML = "";
 }
 
-function loadImagePreview(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            window.currentImageObj = img;
-            document.getElementById('pagesContainer').style.display = 'none';
-            document.getElementById('imagePreviewContainer').style.display = 'block';
-            updateImageOrientation();
-            updateTotals(1, 1);
-        }
-        img.src = e.target.result;
-    }
-    reader.readAsDataURL(file);
+function carregarVisualizacaoImagem(arquivo) {
+    // FileReader transforma a imagem local em uma URL temporária para desenhar no canvas.
+    const leitor = new FileReader();
+
+    leitor.onload = function (evento) {
+        const imagem = new Image();
+
+        imagem.onload = function () {
+            imagemAtual = imagem;
+            document.getElementById("conteinerPaginas").style.display = "none";
+            document.getElementById("conteinerVisualizacaoImagem").style.display = "block";
+            atualizarVisualizacaoImagem();
+            atualizarTotais(1, 1);
+        };
+
+        imagem.src = evento.target.result;
+    };
+
+    leitor.readAsDataURL(arquivo);
 }
 
-function updateImageOrientation() {
-    if (!window.currentImageObj) return;
-    const img = window.currentImageObj;
-    const canvas = document.getElementById('imagePreviewCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    const orientation = document.querySelector('input[name="orientation"]:checked').value;
-    const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
-    
-    // Limit max dimensions for performance while keeping preview quality
-    const MAX_SIZE = 1200;
-    let width = img.width;
-    let height = img.height;
-    
-    if (width > MAX_SIZE || height > MAX_SIZE) {
-        const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
-        width = width * ratio;
-        height = height * ratio;
+function atualizarVisualizacaoImagem() {
+    // Redesenha a imagem conforme a orientação e o modo de cor escolhidos.
+    if (!imagemAtual) return;
+
+    const quadro = document.getElementById("quadroVisualizacaoImagem");
+    const contexto = quadro.getContext("2d");
+    const orientacao = obterValorSelecionado("orientacao", "retrato");
+    const modoCor = obterValorSelecionado("modoCor", "preto_e_branco");
+
+    const tamanhoMaximo = 1200;
+    let largura = imagemAtual.width;
+    let altura = imagemAtual.height;
+
+    // Reduz a prévia para não pesar em imagens muito grandes.
+    if (largura > tamanhoMaximo || altura > tamanhoMaximo) {
+        const proporcao = Math.min(tamanhoMaximo / largura, tamanhoMaximo / altura);
+        largura *= proporcao;
+        altura *= proporcao;
     }
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    contexto.clearRect(0, 0, quadro.width, quadro.height);
+    contexto.filter = modoCor === "preto_e_branco" ? "grayscale(100%)" : "none";
 
-    if (orientation === 'landscape') {
-        canvas.width = height;
-        canvas.height = width;
-        ctx.translate(height / 2, width / 2);
-        ctx.rotate(-90 * Math.PI / 180);
-        if (colorMode === 'monochrome') ctx.filter = 'grayscale(100%)';
-        else ctx.filter = 'none';
-        ctx.drawImage(img, -width / 2, -height / 2, width, height);
+    if (orientacao === "paisagem") {
+        quadro.width = altura;
+        quadro.height = largura;
+        contexto.translate(altura / 2, largura / 2);
+        contexto.rotate(-90 * Math.PI / 180);
+        contexto.drawImage(imagemAtual, -largura / 2, -altura / 2, largura, altura);
     } else {
-        canvas.width = width;
-        canvas.height = height;
-        if (colorMode === 'monochrome') ctx.filter = 'grayscale(100%)';
-        else ctx.filter = 'none';
-        ctx.drawImage(img, 0, 0, width, height);
+        quadro.width = largura;
+        quadro.height = altura;
+        contexto.drawImage(imagemAtual, 0, 0, largura, altura);
     }
 }
 
-function applyImageColorMode() {
-    updateImageOrientation(); // Canvas redraws apply the color instantly
-}
-
-async function loadPDF(file) {
+async function carregarPdf(arquivo) {
     try {
-        const arrayBuffer = await file.arrayBuffer();
-        originalPdfBytes = arrayBuffer; // Store as ArrayBuffer for PDF-lib
-        const typedArray = new Uint8Array(arrayBuffer);
-        pdfDocument = await pdfjsLib.getDocument(typedArray).promise;
+        // Guardamos os bytes originais para criar um novo PDF se o usuário mudar páginas ou cópias.
+        const bytes = await arquivo.arrayBuffer();
+        bytesPdfOriginal = bytes;
 
-        // Test if PDF-lib can also load this PDF
+        const bytesTipados = new Uint8Array(bytes);
+        documentoPdf = await pdfjsLib.getDocument(bytesTipados).promise;
+
+        // Este teste avisa se o PDF não puder ser editado pelo pdf-lib.
         try {
-            await PDFLib.PDFDocument.load(originalPdfBytes);
-            console.log('PDF-lib compatibility: OK');
-        } catch (pdfLibError) {
-            console.warn('PDF-lib compatibility issue:', pdfLibError);
-            showMessage('⚠️ Aviso: Algumas funcionalidades de edição podem não funcionar com este PDF', 'warning');
+            await PDFLib.PDFDocument.load(bytesPdfOriginal);
+            console.log("Compatibilidade com pdf-lib: OK");
+        } catch (erroPdfLib) {
+            console.warn("PDF com possível limitação de edição:", erroPdfLib);
+            mostrarMensagem("Aviso: algumas funções de edição podem não funcionar com este PDF.", "aviso");
         }
 
-        // Initialize page data
-        pageData = [];
-        for (let i = 1; i <= pdfDocument.numPages; i++) {
-            pageData.push({
-                pageNum: i,
-                selected: true,
-                copies: 1
+        dadosPaginas = [];
+        for (let numeroPagina = 1; numeroPagina <= documentoPdf.numPages; numeroPagina++) {
+            dadosPaginas.push({
+                numeroPagina,
+                selecionada: true,
+                copias: 1,
             });
         }
 
-        console.log(`PDF loaded with ${pdfDocument.numPages} pages`);
-    } catch (error) {
-        console.error('Error loading PDF:', error);
-        showMessage('Erro ao carregar PDF para preview', 'error');
+        console.log(`PDF carregado com ${documentoPdf.numPages} páginas.`);
+    } catch (erro) {
+        console.error("Erro ao carregar PDF:", erro);
+        mostrarMensagem("Erro ao carregar o PDF para pré-visualização.", "erro");
     }
 }
 
-async function createModifiedPDF() {
-    if (!originalPdfBytes || !pdfDocument) {
-        return null;
-    }
+async function criarPdfModificado() {
+    // Cria um novo PDF contendo somente as páginas e cópias selecionadas.
+    if (!bytesPdfOriginal || !documentoPdf) return null;
 
     try {
-        // Get selected pages and their copy counts
-        const selectedPages = [];
-        const pageMap = new Map(); // Track which pages and how many copies
+        const paginasSelecionadas = [];
 
-        for (let i = 1; i <= pdfDocument.numPages; i++) {
-            const checkbox = document.getElementById(`page-${i}`);
-            const copiesInput = document.getElementById(`copies-${i}`);
+        for (let numeroPagina = 1; numeroPagina <= documentoPdf.numPages; numeroPagina++) {
+            const caixaSelecao = document.getElementById(`pagina-${numeroPagina}`);
+            const campoCopias = document.getElementById(`copias-${numeroPagina}`);
 
-            if (checkbox && checkbox.checked) {
-                const copies = parseInt(copiesInput.value) || 1;
-                if (copies > 0) {
-                    pageMap.set(i - 1, copies); // PDF-lib uses 0-based indexing
-                    for (let copy = 0; copy < copies; copy++) {
-                        selectedPages.push(i - 1);
-                    }
+            if (caixaSelecao && caixaSelecao.checked) {
+                const copias = parseInt(campoCopias.value, 10) || 0;
+                for (let copia = 0; copia < copias; copia++) {
+                    paginasSelecionadas.push(numeroPagina - 1);
                 }
             }
         }
 
-        if (selectedPages.length === 0) {
-            throw new Error('Nenhuma página selecionada');
+        if (paginasSelecionadas.length === 0) {
+            throw new Error("Nenhuma página selecionada.");
         }
 
-        console.log('Selected pages for processing:', selectedPages);
-
-        // Load original PDF with PDF-lib - try different approaches
-        let pdfDoc;
+        let pdfOriginal;
         try {
-            // First attempt: direct load
-            pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
-        } catch (firstError) {
-            console.warn('First load attempt failed:', firstError);
-
-            try {
-                // Second attempt: create Uint8Array
-                const uint8Array = new Uint8Array(originalPdfBytes);
-                pdfDoc = await PDFLib.PDFDocument.load(uint8Array);
-            } catch (secondError) {
-                console.warn('Second load attempt failed:', secondError);
-
-                try {
-                    // Third attempt: re-read file
-                    const newArrayBuffer = await uploadedFile.arrayBuffer();
-                    pdfDoc = await PDFLib.PDFDocument.load(newArrayBuffer);
-                } catch (thirdError) {
-                    console.error('All load attempts failed:', thirdError);
-                    throw new Error('PDF não é compatível com edição. Arquivo será enviado sem modificações.');
-                }
-            }
+            pdfOriginal = await PDFLib.PDFDocument.load(bytesPdfOriginal);
+        } catch (primeiroErro) {
+            console.warn("Primeira tentativa de abrir PDF falhou:", primeiroErro);
+            const bytesNovos = await arquivoSelecionado.arrayBuffer();
+            pdfOriginal = await PDFLib.PDFDocument.load(bytesNovos);
         }
 
-        // Create new PDF document
-        const newPdfDoc = await PDFLib.PDFDocument.create();
-        
-        // Get orientation setting
-        const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
+        const novoPdf = await PDFLib.PDFDocument.create();
+        const orientacao = obterValorSelecionado("orientacao", "retrato");
+        const paginasCopiadas = await novoPdf.copyPages(pdfOriginal, paginasSelecionadas);
 
-        // Copy selected pages to new document
-        console.log('Copying pages to new document...');
-        const copiedPages = await newPdfDoc.copyPages(pdfDoc, selectedPages);
-
-        // Add pages to new document
-        copiedPages.forEach((page, index) => {
-            // Apply rotation if landscape
-            if (orientation === 'landscape') {
-                page.setRotation(PDFLib.degrees(90));
+        paginasCopiadas.forEach((pagina) => {
+            if (orientacao === "paisagem") {
+                pagina.setRotation(PDFLib.degrees(90));
             }
-            
-            newPdfDoc.addPage(page);
-            console.log(`Added page ${selectedPages[index] + 1} to new document`);
+            novoPdf.addPage(pagina);
         });
 
-        // Serialize the new PDF
-        console.log('Saving new PDF...');
-        const pdfBytes = await newPdfDoc.save();
+        const bytesNovoPdf = await novoPdf.save();
+        const arquivoBlob = new Blob([bytesNovoPdf], { type: "application/pdf" });
+        const nomeNovoArquivo = arquivoSelecionado.name.replace(/\.pdf$/i, "_modificado.pdf");
 
-        // Create blob and file
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const modifiedFileName = uploadedFile.name.replace(/\.pdf$/i, '_modified.pdf');
-
-        console.log(`Created modified PDF: ${modifiedFileName} (${blob.size} bytes)`);
-        return new File([blob], modifiedFileName, { type: 'application/pdf' });
-
-    } catch (error) {
-        console.error('Error creating modified PDF:', error);
-
-        // If it's a compatibility error, allow fallback
-        if (error.message.includes('não é compatível')) {
-            throw error;
-        }
-
-        throw new Error(`Erro ao processar PDF: ${error.message}`);
+        return new File([arquivoBlob], nomeNovoArquivo, { type: "application/pdf" });
+    } catch (erro) {
+        console.error("Erro ao criar PDF modificado:", erro);
+        throw new Error(`Erro ao processar PDF: ${erro.message}`);
     }
 }
 
-async function renderPDFPages() {
-    if (!pdfDocument) return;
+async function renderizarPaginasPdf() {
+    // Desenha cada página do PDF em um canvas próprio.
+    if (!documentoPdf) return;
 
-    const container = document.getElementById('pagesContainer');
-    container.innerHTML = '';
-    
-    // Check orientation to apply visual rotation
-    const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
-    const rotationDegree = orientation === 'landscape' ? 270 : 0; // Rotate 90deg left for landscape
+    const conteinerPaginas = document.getElementById("conteinerPaginas");
+    conteinerPaginas.innerHTML = "";
 
-    // Check color mode to apply visual filter
-    const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
-    const filterCss = colorMode === 'monochrome' ? 'filter: grayscale(100%);' : '';
+    const orientacao = obterValorSelecionado("orientacao", "retrato");
+    const rotacao = orientacao === "paisagem" ? 270 : 0;
+    const modoCor = obterValorSelecionado("modoCor", "preto_e_branco");
+    const filtroCss = modoCor === "preto_e_branco" ? "filter: grayscale(100%);" : "";
 
-    for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page-item';
-        
-        // Create canvas for PDF page
-        const canvas = document.createElement('canvas');
-        canvas.style.cssText = `
-        max-width: 100%;
-        height: auto;
-        border: 1px solid #ddd;
-        display: block;
-        margin: 0 auto 10px auto;
-        ${filterCss}
-    `;
+    for (let numeroPagina = 1; numeroPagina <= documentoPdf.numPages; numeroPagina++) {
+        const itemPagina = document.createElement("article");
+        itemPagina.className = "item-pagina";
 
-        // Page number label
-        const pageLabelName = document.createElement('div');
-        pageLabelName.textContent = `Página ${pageNum}`;
-        pageLabelName.style.cssText = `
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #333;
-    `;
+        const rotuloPagina = document.createElement("div");
+        rotuloPagina.className = "rotulo-pagina";
+        rotuloPagina.textContent = `Página ${numeroPagina}`;
 
-        // Checkbox for selection
-        const pageOptions = document.createElement('div');
-        const pageCheckbox = document.createElement('div');
-        const pageQuantity = document.createElement('div');
-        pageOptions.className = "page-options";
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        // Preserve previous selection state if possible
-        const exisitngData = pageData.find(p => p.pageNum === pageNum);
-        checkbox.checked = exisitngData ? exisitngData.selected : true;
-        checkbox.id = `page-${pageNum}`;
-        checkbox.addEventListener('change', () => {
-            updateTotals();
-            updatePageVisualState(pageDiv, checkbox.checked);
-            const pd = pageData.find(p => p.pageNum === pageNum);
-            if(pd) pd.selected = checkbox.checked;
-        });
-
-        const checkboxLabel = document.createElement('label');
-        checkboxLabel.htmlFor = `page-${pageNum}`;
-        checkboxLabel.textContent = 'Imprimir';
-
-        // Copies input
-        const copiesLabel = document.createElement('label');
-        copiesLabel.textContent = 'Cópias:';
-        copiesLabel.style.cssText = `
-        display: block;
-        margin: 5px 0;
-        font-size: 12px;
-    `;
-
-        const copiesInput = document.createElement('input');
-        copiesInput.type = 'number';
-        copiesInput.min = '0';
-        copiesInput.max = '99';
-        copiesInput.value = exisitngData ? exisitngData.copies : '1';
-        copiesInput.id = `copies-${pageNum}`;
-        copiesInput.style.cssText = `
-        width: 50px;
-        padding: 2px;
-        text-align: center;
-    `;
-        copiesInput.addEventListener('change', () => {
-            updateTotals();
-            const pd = pageData.find(p => p.pageNum === pageNum);
-            if(pd) pd.copies = parseInt(copiesInput.value) || 0;
-        });
-
-        // Assemble page div
-        pageDiv.appendChild(pageLabelName);
-        pageDiv.appendChild(canvas);
-        pageDiv.appendChild(pageOptions);
-        pageOptions.appendChild(pageCheckbox);
-        pageOptions.appendChild(pageQuantity);
-        pageCheckbox.appendChild(checkbox);
-        pageCheckbox.appendChild(checkboxLabel);
-        pageQuantity.appendChild(copiesLabel);
-        pageQuantity.appendChild(copiesInput);
-
-        container.appendChild(pageDiv);
-
-        // Render PDF page
-        try {
-            const page = await pdfDocument.getPage(pageNum);
-            const scale = 0.5; // Scale down for preview
-            const viewport = page.getViewport({ scale, rotation: rotationDegree });
-
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-
-            const context = canvas.getContext('2d');
-            const renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
-
-            await page.render(renderContext).promise;
-        } catch (error) {
-            console.error(`Error rendering page ${pageNum}:`, error);
-            canvas.style.display = 'none';
-            const errorMsg = document.createElement('div');
-            errorMsg.textContent = 'Erro ao carregar página';
-            errorMsg.style.cssText = `
-            color: red;
-            font-size: 12px;
-            margin: 10px 0;
+        const quadroPagina = document.createElement("canvas");
+        quadroPagina.style.cssText = `
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+            ${filtroCss}
         `;
-            pageDiv.appendChild(errorMsg);
+
+        const controlesPagina = document.createElement("div");
+        controlesPagina.className = "opcoes-pagina";
+
+        const areaSelecao = document.createElement("div");
+        const caixaSelecao = document.createElement("input");
+        const rotuloSelecao = document.createElement("label");
+
+        const areaQuantidade = document.createElement("div");
+        const rotuloCopias = document.createElement("label");
+        const campoCopias = document.createElement("input");
+
+        const dadosExistentes = dadosPaginas.find((pagina) => pagina.numeroPagina === numeroPagina);
+
+        caixaSelecao.type = "checkbox";
+        caixaSelecao.id = `pagina-${numeroPagina}`;
+        caixaSelecao.checked = dadosExistentes ? dadosExistentes.selecionada : true;
+        caixaSelecao.addEventListener("change", () => {
+            atualizarTotais();
+            atualizarAparenciaPagina(itemPagina, caixaSelecao.checked);
+
+            const dados = dadosPaginas.find((pagina) => pagina.numeroPagina === numeroPagina);
+            if (dados) dados.selecionada = caixaSelecao.checked;
+        });
+
+        rotuloSelecao.htmlFor = `pagina-${numeroPagina}`;
+        rotuloSelecao.textContent = "Imprimir";
+
+        rotuloCopias.htmlFor = `copias-${numeroPagina}`;
+        rotuloCopias.textContent = "Cópias:";
+
+        campoCopias.type = "number";
+        campoCopias.min = "0";
+        campoCopias.max = "99";
+        campoCopias.value = dadosExistentes ? dadosExistentes.copias : "1";
+        campoCopias.id = `copias-${numeroPagina}`;
+        campoCopias.addEventListener("change", () => {
+            atualizarTotais();
+
+            const dados = dadosPaginas.find((pagina) => pagina.numeroPagina === numeroPagina);
+            if (dados) dados.copias = parseInt(campoCopias.value, 10) || 0;
+        });
+
+        itemPagina.appendChild(rotuloPagina);
+        itemPagina.appendChild(quadroPagina);
+        itemPagina.appendChild(controlesPagina);
+
+        controlesPagina.appendChild(areaSelecao);
+        controlesPagina.appendChild(areaQuantidade);
+        areaSelecao.appendChild(caixaSelecao);
+        areaSelecao.appendChild(rotuloSelecao);
+        areaQuantidade.appendChild(rotuloCopias);
+        areaQuantidade.appendChild(campoCopias);
+
+        conteinerPaginas.appendChild(itemPagina);
+        atualizarAparenciaPagina(itemPagina, caixaSelecao.checked);
+
+        try {
+            const paginaPdf = await documentoPdf.getPage(numeroPagina);
+            const escala = 0.5;
+            const viewport = paginaPdf.getViewport({ scale: escala, rotation: rotacao });
+
+            quadroPagina.width = viewport.width;
+            quadroPagina.height = viewport.height;
+
+            await paginaPdf.render({
+                canvasContext: quadroPagina.getContext("2d"),
+                viewport,
+            }).promise;
+        } catch (erro) {
+            console.error(`Erro ao renderizar página ${numeroPagina}:`, erro);
+            quadroPagina.style.display = "none";
+
+            const mensagemErro = document.createElement("div");
+            mensagemErro.className = "erro-pagina";
+            mensagemErro.textContent = "Erro ao carregar esta página.";
+            itemPagina.appendChild(mensagemErro);
         }
     }
 
-    updateTotals();
+    atualizarTotais();
 }
 
-function updatePageVisualState(pageDiv, isSelected) {
-    if (isSelected) {
-        pageDiv.style.opacity = '1';
-        pageDiv.style.borderColor = '#1e3a8a';
-        pageDiv.style.transform = 'scale(1)';
+function atualizarAparenciaPagina(itemPagina, selecionada) {
+    // Dá um retorno visual para mostrar se a página entra ou não na impressão.
+    if (selecionada) {
+        itemPagina.style.opacity = "1";
+        itemPagina.style.borderColor = "#1e3a8a";
+        itemPagina.style.transform = "scale(1)";
     } else {
-        pageDiv.style.opacity = '0.7';
-        pageDiv.style.borderColor = '#ddd';
-        pageDiv.style.transform = 'scale(0.95)';
+        itemPagina.style.opacity = "0.7";
+        itemPagina.style.borderColor = "#cbd5e1";
+        itemPagina.style.transform = "scale(0.97)";
     }
 }
 
-function selectAllPages() {
-    const master = document.getElementById('checkado');
-    const shouldSelect = master.checked;
+function selecionarTodasPaginas() {
+    // Marca ou desmarca todas as páginas de uma vez.
+    if (!documentoPdf) return;
 
-    for (let i = 1; i <= pdfDocument.numPages; i++) {
-        const checkbox = document.getElementById(`page-${i}`);
-        if (!checkbox) continue;
+    const deveSelecionar = document.getElementById("marcarTodasPaginas").checked;
 
-        checkbox.checked = shouldSelect;
+    for (let numeroPagina = 1; numeroPagina <= documentoPdf.numPages; numeroPagina++) {
+        const caixaSelecao = document.getElementById(`pagina-${numeroPagina}`);
+        if (!caixaSelecao) continue;
 
-        const pageDiv = checkbox.closest('.page-item');
-        if (pageDiv) updatePageVisualState(pageDiv, shouldSelect);
-        
-        const pd = pageData.find(p => p.pageNum === i);
-        if(pd) pd.selected = shouldSelect;
+        caixaSelecao.checked = deveSelecionar;
+
+        const itemPagina = caixaSelecao.closest(".item-pagina");
+        if (itemPagina) atualizarAparenciaPagina(itemPagina, deveSelecionar);
+
+        const dados = dadosPaginas.find((pagina) => pagina.numeroPagina === numeroPagina);
+        if (dados) dados.selecionada = deveSelecionar;
     }
 
-    updateTotals();
+    atualizarTotais();
 }
 
-function setAllCopies() {
-    const globalCopies = document.getElementById('globalCopies').value;
-    for (let i = 1; i <= pdfDocument.numPages; i++) {
-        const copiesInput = document.getElementById(`copies-${i}`);
-        if (copiesInput) copiesInput.value = globalCopies;
-        const pd = pageData.find(p => p.pageNum === i);
-        if(pd) pd.copies = parseInt(globalCopies) || 0;
-    }
-    updateTotals();
-}
+function definirCopiasParaTodas() {
+    // Aplica a mesma quantidade de cópias para todas as páginas.
+    const copiasGlobais = parseInt(document.getElementById("copiasGlobais").value, 10) || 0;
 
-function updateTotals(overridePages = null, overrideCopies = null) {
-    if (overridePages !== null) {
-        document.getElementById('totalSelectedPages').textContent = overridePages;
-        document.getElementById('totalCopies').textContent = overrideCopies;
+    if (!documentoPdf) {
+        atualizarTotais(1, copiasGlobais || 1);
         return;
     }
 
-    if (!pdfDocument) return;
+    for (let numeroPagina = 1; numeroPagina <= documentoPdf.numPages; numeroPagina++) {
+        const campoCopias = document.getElementById(`copias-${numeroPagina}`);
+        if (campoCopias) campoCopias.value = String(copiasGlobais);
 
-    let selectedPagesCount = 0;
-    let totalCopiesCount = 0;
+        const dados = dadosPaginas.find((pagina) => pagina.numeroPagina === numeroPagina);
+        if (dados) dados.copias = copiasGlobais;
+    }
 
-    for (let i = 1; i <= pdfDocument.numPages; i++) {
-        const checkbox = document.getElementById(`page-${i}`);
-        const copiesInput = document.getElementById(`copies-${i}`);
+    atualizarTotais();
+}
 
-        if (checkbox && checkbox.checked) {
-            selectedPagesCount++;
-            if (copiesInput) {
-                totalCopiesCount += parseInt(copiesInput.value) || 0;
-            }
+function atualizarTotais(totalPaginasManual = null, totalCopiasManual = null) {
+    // Atualiza os números exibidos na parte inferior da pré-visualização.
+    if (totalPaginasManual !== null) {
+        document.getElementById("totalPaginasSelecionadas").textContent = totalPaginasManual;
+        document.getElementById("totalCopias").textContent = totalCopiasManual;
+        return;
+    }
+
+    if (!documentoPdf) return;
+
+    let totalPaginasSelecionadas = 0;
+    let totalCopias = 0;
+
+    for (let numeroPagina = 1; numeroPagina <= documentoPdf.numPages; numeroPagina++) {
+        const caixaSelecao = document.getElementById(`pagina-${numeroPagina}`);
+        const campoCopias = document.getElementById(`copias-${numeroPagina}`);
+
+        if (caixaSelecao && caixaSelecao.checked) {
+            totalPaginasSelecionadas++;
+            totalCopias += parseInt(campoCopias.value, 10) || 0;
         }
     }
 
-    document.getElementById('totalSelectedPages').textContent = selectedPagesCount;
-    document.getElementById('totalCopies').textContent = totalCopiesCount;
+    document.getElementById("totalPaginasSelecionadas").textContent = totalPaginasSelecionadas;
+    document.getElementById("totalCopias").textContent = totalCopias;
 }
 
-function goToStep(stepNum) {
-    document.getElementById(`step${currentStep}`).classList.add('hidden');
+function irParaEtapa(numeroEtapa) {
+    // Esconde a etapa atual e mostra a etapa solicitada.
+    document.getElementById(`etapa${etapaAtual}`).classList.add("oculto");
 
     setTimeout(async () => {
-        document.getElementById(`step${stepNum}`).classList.remove('hidden');
+        document.getElementById(`etapa${numeroEtapa}`).classList.remove("oculto");
 
-        if (stepNum === 2 && uploadedFile) {
-            document.getElementById('pdfPreviewContainer').style.display = 'block';
-            if (pdfDocument) {
-                await renderPDFPages();
-            }
+        if (numeroEtapa === 2 && arquivoSelecionado) {
+            document.getElementById("conteinerVisualizacao").style.display = "block";
+            if (documentoPdf) await renderizarPaginasPdf();
         }
 
-        if (stepNum === 3) {
-            updateSummary();
+        if (numeroEtapa === 3) {
+            atualizarResumo();
         }
 
-        if (stepNum === 4) {
-            resetPixUI();
-            // Auto-generate QR code when entering payment step
-            setTimeout(() => generatePixQR(), 300);
+        if (numeroEtapa === 4) {
+            limparInterfacePix();
+            setTimeout(() => gerarQrPix(), 300);
         }
 
-        currentStep = stepNum;
-
-        document.getElementById(`step${stepNum}`).scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
+        etapaAtual = numeroEtapa;
+        document.getElementById(`etapa${numeroEtapa}`).scrollIntoView({
+            behavior: "smooth",
+            block: "start",
         });
-    }, 300);
+    }, 250);
 }
 
-function updateSummary() {
-    const printType = document.querySelector('input[name="printType"]:checked')?.value || 'normal';
-    const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
-    const pageFit = document.querySelector('input[name="pageFit"]:checked')?.value || 'fit';
+function atualizarResumo() {
+    // Copia as escolhas do usuário para a tela de resumo.
+    const tipoImpressao = obterValorSelecionado("tipoImpressao", "normal");
+    const modoCor = obterValorSelecionado("modoCor", "preto_e_branco");
+    const ajustePagina = obterValorSelecionado("ajustePagina", "ajustar");
 
-    document.getElementById('summaryFileName').textContent = uploadedFile ? uploadedFile.name : '-';
-    document.getElementById('summaryPrintType').textContent = printType === 'duplex' ? 'Frente e Verso' : 'Impressão Normal';
-    document.getElementById('summaryColor').textContent = colorMode === 'monochrome' ? 'Preto e Branco' : 'Colorido';
-    
-    let fitText = 'Ajustar à folha';
-    if (pageFit === 'shrink') fitText = 'Reduzir para caber';
-    if (pageFit === 'noscale') fitText = 'Tamanho Real';
-    document.getElementById('summaryFit').textContent = fitText;
+    const textoTipo = tipoImpressao === "frente_e_verso" ? "Frente e verso" : "Impressão normal";
+    const textoCor = modoCor === "preto_e_branco" ? "Preto e branco" : "Colorido";
 
-    const selectedPages = document.getElementById('totalSelectedPages').textContent;
-    const totalCopies = document.getElementById('totalCopies').textContent;
+    let textoAjuste = "Ajustar à folha";
+    if (ajustePagina === "reduzir") textoAjuste = "Reduzir para caber";
+    if (ajustePagina === "tamanho_real") textoAjuste = "Tamanho real";
 
-    document.getElementById('summarySelectedPages').textContent = selectedPages;
-    document.getElementById('summaryTotalCopies').textContent = totalCopies;
+    const totalPaginas = document.getElementById("totalPaginasSelecionadas").textContent;
+    const totalCopias = parseInt(document.getElementById("totalCopias").textContent, 10) || 0;
+    const valorPagar = totalCopias * VALOR_POR_COPIA;
+    const valorFormatado = `R$${valorPagar.toFixed(2).replace(".", ",")}`;
 
-    let valorPagar = totalCopies * 0.50;
-    let decimalNumber = valorPagar.toFixed(2);
-
-    document.getElementById('summaryValue').textContent = "R$" + decimalNumber;
-    document.querySelector('.price').textContent = "R$" + decimalNumber;
+    document.getElementById("resumoNomeArquivo").textContent = arquivoSelecionado ? arquivoSelecionado.name : "-";
+    document.getElementById("resumoPaginasSelecionadas").textContent = totalPaginas;
+    document.getElementById("resumoTotalCopias").textContent = totalCopias;
+    document.getElementById("resumoTipoImpressao").textContent = textoTipo;
+    document.getElementById("resumoModoCor").textContent = textoCor;
+    document.getElementById("resumoAjuste").textContent = textoAjuste;
+    document.getElementById("resumoValorTotal").textContent = valorFormatado;
+    document.querySelector(".preco").textContent = valorFormatado;
 }
 
-async function sendToPrint() {
-    if (!uploadedFile) {
-        showMessage('Nenhum arquivo selecionado!', 'error');
+async function enviarParaImpressao() {
+    // Envia o arquivo final para o backend depois que o pagamento é liberado.
+    if (!arquivoSelecionado) {
+        mostrarMensagem("Nenhum arquivo selecionado.", "erro");
         return;
     }
 
-    const printBtn = document.getElementById('printBtn');
-    const printBtnText = document.getElementById('printBtnText');
+    const botaoImprimir = document.getElementById("botaoImprimir");
+    const textoBotao = document.getElementById("textoBotaoImprimir");
 
-    printBtn.disabled = true;
-    printBtnText.innerHTML = '<span class="loading"></span>Processando arquivo...';
+    botaoImprimir.disabled = true;
+    textoBotao.innerHTML = '<span class="carregando"></span>Processando arquivo...';
 
     try {
-        let fileToSend = uploadedFile;
-        let usedModification = false;
+        let arquivoParaEnviar = arquivoSelecionado;
+        let pdfModificado = false;
 
-        if (uploadedFile.type === 'application/pdf' && pdfDocument) {
-            let needsModification = false;
-            const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
-            if (orientation === 'landscape') needsModification = true;
+        if (arquivoSelecionado.type === "application/pdf" && documentoPdf) {
+            let precisaModificar = obterValorSelecionado("orientacao", "retrato") === "paisagem";
 
-            if (!needsModification) {
-                for (let i = 1; i <= pdfDocument.numPages; i++) {
-                    const checkbox = document.getElementById(`page-${i}`);
-                    const copiesInput = document.getElementById(`copies-${i}`);
-                    if (!checkbox || !checkbox.checked || parseInt(copiesInput.value) !== 1) {
-                        needsModification = true;
+            if (!precisaModificar) {
+                for (let numeroPagina = 1; numeroPagina <= documentoPdf.numPages; numeroPagina++) {
+                    const caixaSelecao = document.getElementById(`pagina-${numeroPagina}`);
+                    const campoCopias = document.getElementById(`copias-${numeroPagina}`);
+                    if (!caixaSelecao || !caixaSelecao.checked || parseInt(campoCopias.value, 10) !== 1) {
+                        precisaModificar = true;
                         break;
                     }
                 }
             }
 
-            if (needsModification) {
-                try {
-                    printBtnText.innerHTML = '<span class="loading"></span>Criando PDF modificado...';
-                    const modifiedFile = await createModifiedPDF();
-                    if (modifiedFile) {
-                        fileToSend = modifiedFile;
-                        usedModification = true;
-                    }
-                } catch (modificationError) {
-                    console.warn('PDF modification failed, using original:', modificationError);
-                    if (modificationError.message.includes('não é compatível')) {
-                        showMessage('⚠️ PDF será enviado sem modificações (páginas não suportadas para edição)', 'warning');
-                    } else {
-                        showMessage(`⚠️ Erro na modificação, enviando arquivo original: ${modificationError.message}`, 'warning');
-                    }
-                    fileToSend = uploadedFile;
-                }
+            if (precisaModificar) {
+                textoBotao.innerHTML = '<span class="carregando"></span>Criando PDF final...';
+                arquivoParaEnviar = await criarPdfModificado();
+                pdfModificado = true;
             }
         }
 
-        printBtnText.innerHTML = '<span class="loading"></span>Enviando para impressão...';
+        textoBotao.innerHTML = '<span class="carregando"></span>Enviando para impressão...';
 
-        const formData = new FormData();
-        formData.append('file', fileToSend);
+        const dadosFormulario = new FormData();
+        dadosFormulario.append("arquivo", arquivoParaEnviar);
+        dadosFormulario.append("tipoImpressao", obterValorSelecionado("tipoImpressao", "normal"));
+        dadosFormulario.append("tamanhoPapel", obterValorSelecionado("tamanhoPapel", "a4"));
+        dadosFormulario.append("orientacao", obterValorSelecionado("orientacao", "retrato"));
+        dadosFormulario.append("modoCor", obterValorSelecionado("modoCor", "preto_e_branco"));
+        dadosFormulario.append("ajustePagina", obterValorSelecionado("ajustePagina", "ajustar"));
 
-        const printType = document.querySelector('input[name="printType"]:checked')?.value || 'normal';
-        const paperSize = document.querySelector('input[name="paperSize"]:checked')?.value || 'a4';
-        const orientation = document.querySelector('input[name="orientation"]:checked')?.value || 'portrait';
-        const colorMode = document.querySelector('input[name="colorMode"]:checked')?.value || 'color';
-        const pageFit = document.querySelector('input[name="pageFit"]:checked')?.value || 'fit';
-
-        formData.append('printType', printType);
-        formData.append('paperSize', paperSize);
-        formData.append('orientation', orientation);
-        formData.append('colorMode', colorMode);
-        formData.append('pageFit', pageFit);
-        
-        let copiesToSend = 1;
-        if (!usedModification && uploadedFile && uploadedFile.type.includes('image')) {
-            const totalCopies = document.getElementById('totalCopies').textContent;
-            copiesToSend = parseInt(totalCopies) || 1;
+        let copiasParaEnviar = 1;
+        if (!pdfModificado && (!documentoPdf || arquivoSelecionado.type.includes("image"))) {
+            copiasParaEnviar = parseInt(document.getElementById("totalCopias").textContent, 10) || 1;
         }
-        formData.append('copies', copiesToSend);
-        formData.append('wasModified', usedModification.toString());
+        dadosFormulario.append("quantidadeCopias", copiasParaEnviar);
+        dadosFormulario.append("pdfModificadoNoNavegador", String(pdfModificado));
 
-        const response = await fetch('/upload', { method: 'POST', body: formData });
-        const result = await response.json();
+        const resposta = await fetch("/imprimir", {
+            method: "POST",
+            body: dadosFormulario,
+        });
+        const resultado = await resposta.json();
 
-        if (response.ok) {
-            showMessage(usedModification ? '✅ PDF enviado com sucesso!' : '✅ Arquivo enviado com sucesso!', 'success');
-            setTimeout(() => { finalizePurchase(); }, 2000);
-            setTimeout(() => { resetForm(); }, 3000);
-        } else {
-            throw new Error(result.message || 'Erro desconhecido');
+        if (!resposta.ok || resultado.situacao !== "sucesso") {
+            throw new Error(resultado.mensagem || "Erro desconhecido.");
         }
 
-    } catch (error) {
-        console.error('Erro:', error);
-        showMessage(`❌ Erro ao imprimir: ${error.message}`, 'error');
+        mostrarMensagem(
+            pdfModificado ? "PDF final enviado com sucesso." : "Arquivo enviado com sucesso.",
+            "sucesso",
+        );
+
+        setTimeout(() => finalizarPedido(), 1800);
+    } catch (erro) {
+        console.error("Erro ao imprimir:", erro);
+        mostrarMensagem(`Erro ao imprimir: ${erro.message}`, "erro");
     } finally {
-        printBtn.disabled = false;
-        printBtnText.innerHTML = '🖨️ Enviar para Impressão';
+        botaoImprimir.disabled = false;
+        textoBotao.innerHTML = "Enviar para impressão";
     }
 }
 
-function showMessage(message, type) {
-    const statusDiv = document.getElementById('printStatus');
-    let className, styles;
+function mostrarMensagem(mensagem, tipo) {
+    // Mostra mensagens amigáveis de sucesso, aviso ou erro.
+    const areaSituacao = document.getElementById("situacaoImpressao");
+    let classe = "mensagem-erro";
 
-    switch (type) {
-        case 'success':
-            className = 'success-message';
-            styles = 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;';
-            break;
-        case 'warning':
-            className = 'warning-message';
-            styles = 'background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;';
-            break;
-        case 'error':
-        default:
-            className = 'error-message';
-            styles = 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;';
-            break;
-    }
+    if (tipo === "sucesso") classe = "mensagem-sucesso";
+    if (tipo === "aviso") classe = "mensagem-aviso";
 
-    statusDiv.innerHTML = `<div class="${className}" style="padding: 15px; margin: 10px 0; border-radius: 5px; ${styles}">${message}</div>`;
+    areaSituacao.innerHTML = `<div class="${classe}">${mensagem}</div>`;
 
-    if (type === 'success') {
-        setTimeout(() => { statusDiv.innerHTML = ''; }, 5000);
-    } else if (type === 'warning') {
-        setTimeout(() => { statusDiv.innerHTML = ''; }, 10000);
+    if (tipo === "sucesso") {
+        setTimeout(() => { areaSituacao.innerHTML = ""; }, 5000);
+    } else if (tipo === "aviso") {
+        setTimeout(() => { areaSituacao.innerHTML = ""; }, 10000);
     }
 }
 
+async function gerarQrPix() {
+    // Gera o QR Code Pix real ou o QR demonstrativo do TCC.
+    const textoPreco = document.querySelector(".preco").textContent;
+    const valor = parseFloat(textoPreco.replace("R$", "").replace(",", ".").trim());
 
-
-// ==========================================
-// PIX PAYMENT FLOW
-// ==========================================
-
-let pixPollingInterval = null;
-let currentPaymentId = null;
-
-async function generatePixQR() {
-    const priceText = document.querySelector('.price').textContent;
-    const amount = parseFloat(priceText.replace('R$', '').replace(',', '.').trim());
-
-    if (!amount || amount <= 0) {
-        showMessage('Valor inválido para gerar o Pix.', 'error');
+    if (!valor || valor <= 0) {
+        mostrarMensagem("Valor inválido para gerar o Pix.", "erro");
         return;
     }
 
-    // Show loading
-    document.getElementById('pixLoading').style.display = 'block';
+    const modoDemonstracao = document.getElementById("modoDemonstracao").checked;
+
+    if (modoDemonstracao) {
+        document.getElementById("carregamentoPix").style.display = "none";
+
+        document.getElementById("qrPixImagem").src =
+            "https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=1e3a8a&data=ModoDemonstracaoTCC";
+        document.getElementById("codigoPixCopiaCola").value = "00020101021226...[MODO_DEMONSTRACAO_TCC]...0000";
+        document.getElementById("conteinerQrPix").style.display = "block";
+
+        const areaSituacao = document.getElementById("situacaoPagamentoPix");
+        areaSituacao.style.display = "block";
+        areaSituacao.className = "situacao-pix demonstracao";
+        areaSituacao.innerHTML = `
+            <div><strong>Modo de demonstração ativo</strong></div>
+            <button type="button" onclick="simularPagamentoDemonstracao()" class="botao-demonstracao">
+                Simular aprovação do pagamento
+            </button>
+        `;
+
+        document.getElementById("confirmacaoManualPix").style.display = "none";
+        return;
+    }
+
+    document.getElementById("carregamentoPix").style.display = "block";
 
     try {
-        const response = await fetch('/generate-pix', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: amount })
+        const resposta = await fetch("/gerar-pix", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ valor }),
         });
+        const resultado = await resposta.json();
 
-        const result = await response.json();
-
-        if (!response.ok || result.status !== 'success') {
-            throw new Error(result.message || 'Erro ao gerar Pix');
+        if (!resposta.ok || resultado.situacao !== "sucesso") {
+            throw new Error(resultado.mensagem || "Erro ao gerar Pix.");
         }
 
-        // Display QR Code
-        const qrContainer = document.getElementById('pixQrContainer');
-        const qrImg = document.getElementById('pixQrImg');
-        const copiaCola = document.getElementById('pixCopiaCola');
-        const statusDiv = document.getElementById('pixPaymentStatus');
+        document.getElementById("qrPixImagem").src = resultado.qr_base64;
+        document.getElementById("codigoPixCopiaCola").value = resultado.codigo_copia_cola;
+        document.getElementById("conteinerQrPix").style.display = "block";
+        document.getElementById("carregamentoPix").style.display = "none";
 
-        qrImg.src = result.qr_base64;
-        copiaCola.value = result.copia_cola;
-        qrContainer.style.display = 'block';
+        const areaSituacao = document.getElementById("situacaoPagamentoPix");
 
-        // Hide loading
-        document.getElementById('pixLoading').style.display = 'none';
-
-        if (result.mode === 'mercadopago') {
-            // Dynamic QR — start polling
-            currentPaymentId = result.payment_id;
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fef3c7';
-            statusDiv.style.color = '#92400e';
-            statusDiv.textContent = '⏳ Aguardando pagamento...';
-            document.getElementById('pixManualConfirm').style.display = 'none';
-            startPaymentPolling(result.payment_id);
+        if (resultado.modo === "mercadopago") {
+            idPagamentoAtual = resultado.id_pagamento;
+            areaSituacao.style.display = "block";
+            areaSituacao.className = "situacao-pix aguardando";
+            areaSituacao.textContent = "Aguardando pagamento...";
+            document.getElementById("confirmacaoManualPix").style.display = "none";
+            iniciarVerificacaoPagamento(idPagamentoAtual);
         } else {
-            // Static QR — show manual confirm
-            statusDiv.style.display = 'none';
-            document.getElementById('pixManualConfirm').style.display = 'block';
+            areaSituacao.style.display = "none";
+            document.getElementById("confirmacaoManualPix").style.display = "block";
         }
-
-    } catch (error) {
-        console.error('Erro ao gerar Pix:', error);
-        document.getElementById('pixLoading').style.display = 'none';
-        showMessage(`❌ ${error.message}`, 'error');
+    } catch (erro) {
+        console.error("Erro ao gerar Pix:", erro);
+        document.getElementById("carregamentoPix").style.display = "none";
+        mostrarMensagem(erro.message, "erro");
     }
 }
 
-function startPaymentPolling(paymentId) {
-    // Clear any existing polling
-    if (pixPollingInterval) clearInterval(pixPollingInterval);
+function iniciarVerificacaoPagamento(idPagamento) {
+    // Consulta o backend a cada três segundos até o Mercado Pago responder.
+    if (intervaloVerificacaoPix) clearInterval(intervaloVerificacaoPix);
 
-    pixPollingInterval = setInterval(async () => {
+    intervaloVerificacaoPix = setInterval(async () => {
         try {
-            const response = await fetch(`/check-payment/${paymentId}`);
-            const result = await response.json();
+            const resposta = await fetch(`/verificar-pagamento/${idPagamento}`);
+            const resultado = await resposta.json();
 
-            if (!response.ok || result.status !== 'success') {
-                console.warn('Erro ao verificar pagamento:', result.message);
+            if (!resposta.ok || resultado.situacao !== "sucesso") {
+                console.warn("Erro ao verificar pagamento:", resultado.mensagem);
                 return;
             }
 
-            const statusDiv = document.getElementById('pixPaymentStatus');
+            const areaSituacao = document.getElementById("situacaoPagamentoPix");
 
-            if (result.payment_status === 'approved') {
-                clearInterval(pixPollingInterval);
-                pixPollingInterval = null;
-                statusDiv.style.background = '#d4edda';
-                statusDiv.style.color = '#155724';
-                statusDiv.textContent = '✅ Pagamento aprovado! Enviando para impressão...';
-                // Auto-trigger print
-                setTimeout(() => sendToPrint(), 1500);
-            } else if (result.payment_status === 'rejected' || result.payment_status === 'cancelled') {
-                clearInterval(pixPollingInterval);
-                pixPollingInterval = null;
-                statusDiv.style.background = '#f8d7da';
-                statusDiv.style.color = '#721c24';
-                statusDiv.textContent = `❌ Pagamento ${result.payment_status === 'rejected' ? 'rejeitado' : 'cancelado'}. Tente novamente.`;
-                // Re-try generating
-                setTimeout(() => generatePixQR(), 2000);
+            if (resultado.situacao_pagamento === "approved") {
+                clearInterval(intervaloVerificacaoPix);
+                intervaloVerificacaoPix = null;
+                areaSituacao.className = "situacao-pix aprovado";
+                areaSituacao.textContent = "Pagamento aprovado. Enviando para impressão...";
+                setTimeout(() => enviarParaImpressao(), 1500);
             }
-            // If still 'pending', keep polling
-        } catch (error) {
-            console.error('Erro no polling:', error);
+
+            if (resultado.situacao_pagamento === "rejected" || resultado.situacao_pagamento === "cancelled") {
+                clearInterval(intervaloVerificacaoPix);
+                intervaloVerificacaoPix = null;
+                areaSituacao.className = "situacao-pix recusado";
+                areaSituacao.textContent = "Pagamento recusado ou cancelado. Tente novamente.";
+                setTimeout(() => gerarQrPix(), 2000);
+            }
+        } catch (erro) {
+            console.error("Erro na verificação do Pix:", erro);
         }
-    }, 3000); // Poll every 3 seconds
+    }, 3000);
 }
 
-function copyPixCode() {
-    const copiaCola = document.getElementById('pixCopiaCola');
-    copiaCola.select();
-    navigator.clipboard.writeText(copiaCola.value).then(() => {
-        const btn = document.getElementById('copyPixBtn');
-        btn.textContent = '✅ Copiado!';
-        btn.style.background = '#16a34a';
+function copiarCodigoPix() {
+    // Copia o código Pix copia e cola para a área de transferência.
+    const campoCodigo = document.getElementById("codigoPixCopiaCola");
+    campoCodigo.select();
+
+    navigator.clipboard.writeText(campoCodigo.value).then(() => {
+        const botao = document.getElementById("botaoCopiarPix");
+        botao.textContent = "Copiado!";
+        botao.style.background = "#16a34a";
+
         setTimeout(() => {
-            btn.textContent = '📋 Copiar';
-            btn.style.background = '#1e3a8a';
+            botao.textContent = "Copiar";
+            botao.style.background = "#1e3a8a";
         }, 2000);
     }).catch(() => {
-        document.execCommand('copy');
-        showMessage('Código copiado!', 'success');
+        document.execCommand("copy");
+        mostrarMensagem("Código Pix copiado.", "sucesso");
     });
 }
 
-function confirmManualPayment() {
-    document.getElementById('pixManualConfirm').style.display = 'none';
-    const statusDiv = document.getElementById('pixPaymentStatus');
-    statusDiv.style.display = 'block';
-    statusDiv.style.background = '#d4edda';
-    statusDiv.style.color = '#155724';
-    statusDiv.textContent = '✅ Pagamento confirmado manualmente! Enviando para impressão...';
-    setTimeout(() => sendToPrint(), 1500);
+function confirmarPagamentoManual() {
+    // Usado quando o QR Code é estático e não existe confirmação automática.
+    document.getElementById("confirmacaoManualPix").style.display = "none";
+
+    const areaSituacao = document.getElementById("situacaoPagamentoPix");
+    areaSituacao.style.display = "block";
+    areaSituacao.className = "situacao-pix aprovado";
+    areaSituacao.textContent = "Pagamento confirmado manualmente. Enviando para impressão...";
+
+    setTimeout(() => enviarParaImpressao(), 1500);
 }
 
-function resetPixUI() {
-    // Reset Pix UI elements when navigating to step 4
-    if (pixPollingInterval) {
-        clearInterval(pixPollingInterval);
-        pixPollingInterval = null;
+function simularPagamentoDemonstracao() {
+    // Botão usado em apresentação do TCC para demonstrar o fluxo sem pagamento real.
+    const areaSituacao = document.getElementById("situacaoPagamentoPix");
+    areaSituacao.className = "situacao-pix aprovado";
+    areaSituacao.innerHTML = "Pagamento de teste aprovado. Enviando para impressão...";
+
+    const botao = areaSituacao.querySelector("button");
+    if (botao) botao.style.display = "none";
+
+    setTimeout(() => enviarParaImpressao(), 1500);
+}
+
+function limparInterfacePix() {
+    // Limpa o estado visual do Pix ao entrar novamente na etapa de pagamento.
+    if (intervaloVerificacaoPix) {
+        clearInterval(intervaloVerificacaoPix);
+        intervaloVerificacaoPix = null;
     }
-    currentPaymentId = null;
-    document.getElementById('pixQrContainer').style.display = 'none';
-    document.getElementById('pixManualConfirm').style.display = 'none';
-    document.getElementById('pixLoading').style.display = 'none';
-    document.getElementById('printBtn').classList.add('hidden');
+
+    idPagamentoAtual = null;
+    document.getElementById("conteinerQrPix").style.display = "none";
+    document.getElementById("confirmacaoManualPix").style.display = "none";
+    document.getElementById("carregamentoPix").style.display = "none";
+    document.getElementById("botaoImprimir").classList.add("oculto");
+    document.getElementById("situacaoPagamentoPix").className = "";
+    document.getElementById("situacaoPagamentoPix").innerHTML = "";
 }
 
-function resetForm() {
-    const form = document.getElementById('uploadForm');
-    if (form) form.reset();
-    
-    document.getElementById('filePreview').style.display = 'none';
-    document.getElementById('nextStep1').classList.add('hidden');
-    document.getElementById('printStatus').innerHTML = '';
-    document.getElementById('pdfPreviewContainer').style.display = 'none';
+function limparFormulario() {
+    // Deixa o sistema pronto para uma nova impressão.
+    const formulario = document.getElementById("formularioEnvio");
+    if (formulario) formulario.reset();
 
-    document.querySelector('input[name="printType"][value="normal"]').checked = true;
-    document.querySelector('input[name="colorMode"][value="color"]').checked = true;
-    document.querySelector('input[name="pageFit"][value="fit"]').checked = true;
-    document.querySelector('input[name="paperSize"][value="a4"]').checked = true;
-    document.querySelector('input[name="orientation"][value="portrait"]').checked = true;
+    document.getElementById("previsualizacaoArquivo").style.display = "none";
+    document.getElementById("botaoContinuarEtapa1").classList.add("oculto");
+    document.getElementById("situacaoImpressao").innerHTML = "";
+    document.getElementById("conteinerVisualizacao").style.display = "none";
+    document.getElementById("textoArquivoPendente").style.display = "block";
 
-    pdfDocument = null;
-    pageData = [];
-    originalPdfBytes = null;
-    uploadedFile = null;
-    window.currentImageObj = null;
-    
-    resetPixUI();
-    goToStep(1);
+    document.querySelector('input[name="tipoImpressao"][value="normal"]').checked = true;
+    document.querySelector('input[name="modoCor"][value="preto_e_branco"]').checked = true;
+    document.querySelector('input[name="ajustePagina"][value="ajustar"]').checked = true;
+    document.querySelector('input[name="tamanhoPapel"][value="a4"]').checked = true;
+    document.querySelector('input[name="orientacao"][value="retrato"]').checked = true;
+
+    arquivoSelecionado = null;
+    documentoPdf = null;
+    dadosPaginas = [];
+    bytesPdfOriginal = null;
+    imagemAtual = null;
+
+    limparInterfacePix();
+    irParaEtapa(1);
 }
 
-function finalizePurchase() {
-
+function finalizarPedido() {
+    // Mostra uma tela final simples confirmando que o pedido foi enviado.
     document.body.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
-            <div style="background: white; padding: 50px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); animation: fadeInUp 0.8s ease-out;">
-                <div style="font-size: 4em; color: #16a34a; margin-bottom: 20px;">✅</div>
-                <h2 style="color: #1e3a8a; margin-bottom: 20px;">Pedido Confirmado!</h2>
-                <p style="color: #64748b; font-size: 1.2em;">Seu pedido foi enviado com sucesso. Você receberá as instruções de pagamento em breve.</p>
-                <button onclick="location.reload()" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; border: none; padding: 15px 30px; border-radius: 25px; margin-top: 30px; cursor: pointer; font-size: 1.1em;">Fazer Novo Pedido</button>
-            </div>
-        </div>
+        <main class="tela-pedido-finalizado">
+            <section class="cartao-pedido-finalizado">
+                <div class="icone-sucesso">✓</div>
+                <h2>Pedido confirmado</h2>
+                <p>Seu arquivo foi enviado para a fila de impressão com sucesso.</p>
+                <button onclick="location.reload()">Fazer novo pedido</button>
+            </section>
+        </main>
     `;
 }
-

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Apresentação TCC - Impressão Automatizada</title>
+
+    <!-- Reveal.js é a biblioteca que transforma este HTML em apresentação de slides. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/dracula.min.css" id="theme">
+
+    <style>
+        /* Estilos simples para deixar a apresentação legível em projetor. */
+        .reveal h1,
+        .reveal h2,
+        .reveal h3,
+        .reveal h4 {
+            text-transform: none;
+            color: #50fa7b;
+        }
+
+        .reveal p,
+        .reveal li {
+            font-size: 0.9em;
+            color: #f8f8f2;
+            line-height: 1.5;
+        }
+
+        .destaque {
+            color: #ff79c6;
+            font-weight: bold;
+        }
+
+        .reveal ul {
+            list-style-type: square;
+        }
+
+        .reveal .slide-background {
+            background-color: #282a36;
+        }
+
+        .lista-tecnologias {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .lista-tecnologias span {
+            background: #44475a;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #8be9fd;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section>
+                <h2>Servidor de Impressão Automatizada</h2>
+                <h3>Revitalização de impressoras legadas</h3>
+                <p>Conectividade, mobilidade e pagamento via Pix</p>
+                <br>
+                <p style="color: #bd93f9;"><strong>Autor:</strong> Lucas Bastos Rezende</p>
+                <p style="font-size: 0.6em; margin-top: 50px; color: #6272a4;">Use as setas do teclado para avançar.</p>
+            </section>
+
+            <section>
+                <h2>O problema</h2>
+                <ul>
+                    <li class="fragment">Impressoras antigas ainda funcionam, mas muitas são descartadas por falta de conectividade.</li>
+                    <li class="fragment">O envio por pendrive, e-mail ou aplicativo de mensagem gera atraso e risco de segurança.</li>
+                    <li class="fragment">A cobrança manual pode causar erro de valor, fila de atendimento e perda de controle.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>A solução proposta</h2>
+                <ul>
+                    <li class="fragment">Criar um servidor web local para receber arquivos pelo navegador.</li>
+                    <li class="fragment">Permitir que o usuário configure páginas, cópias, cor e orientação antes de imprimir.</li>
+                    <li class="fragment">Liberar a impressão somente depois do pagamento via Pix ou da confirmação manual.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Objetivos do projeto</h2>
+                <p class="destaque">Modernizar o uso de impressoras comuns com baixo custo.</p>
+                <ul>
+                    <li class="fragment">Facilitar a impressão em papelarias, bibliotecas e pequenos comércios.</li>
+                    <li class="fragment">Diminuir o descarte de equipamentos ainda funcionais.</li>
+                    <li class="fragment">Automatizar cobrança, envio e exclusão segura do arquivo.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Arquitetura do sistema</h2>
+                <ul>
+                    <li class="fragment"><strong>Interface:</strong> HTML, CSS e JavaScript no navegador.</li>
+                    <li class="fragment"><strong>Servidor:</strong> Python com Flask controlando rotas e regras de negócio.</li>
+                    <li class="fragment"><strong>Impressão:</strong> SumatraPDF e Pillow no Windows.</li>
+                    <li class="fragment"><strong>Pagamento:</strong> Mercado Pago para Pix dinâmico e QR estático como alternativa.</li>
+                </ul>
+                <div class="lista-tecnologias fragment">
+                    <span>Python</span>
+                    <span>Flask</span>
+                    <span>JavaScript</span>
+                    <span>Pix</span>
+                </div>
+            </section>
+
+            <section>
+                <h2>Principais funcionalidades</h2>
+                <ul>
+                    <li class="fragment">Envio de arquivos por clique ou arrastar e soltar.</li>
+                    <li class="fragment">Pré-visualização interativa de PDFs e imagens.</li>
+                    <li class="fragment">Seleção de páginas e quantidade de cópias por página.</li>
+                    <li class="fragment">Modo de demonstração para apresentar o fluxo sem cobrança real.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Pagamento Pix</h2>
+                <ul>
+                    <li class="fragment"><strong>Pix dinâmico:</strong> cobrança criada pelo Mercado Pago, com verificação automática.</li>
+                    <li class="fragment"><strong>Pix estático:</strong> QR Code gerado localmente, com confirmação manual.</li>
+                    <li class="fragment"><strong>Regra principal:</strong> a impressão só acontece depois da liberação do pagamento.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Trabalhos futuros</h2>
+                <ul>
+                    <li class="fragment">Criar painel administrativo com histórico de impressões.</li>
+                    <li class="fragment">Adicionar fila para múltiplas impressoras.</li>
+                    <li class="fragment">Usar webhook do Mercado Pago em vez de consulta por intervalo.</li>
+                    <li class="fragment">Preparar uma versão para Linux usando CUPS.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Conclusão</h2>
+                <ul>
+                    <li class="fragment">O projeto prova que uma impressora comum pode ganhar recursos modernos com software.</li>
+                    <li class="fragment">A solução reduz trabalho manual e organiza o fluxo de impressão em comércios locais.</li>
+                    <li class="fragment">O sistema une reaproveitamento de hardware, interface web e pagamento digital.</li>
+                </ul>
+                <br><br>
+                <h3 class="fragment destaque">Obrigado!</h3>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script>
+        // Inicializa a apresentação com controles, progresso e navegação por URL.
+        Reveal.initialize({
+            hash: true,
+            controls: true,
+            progress: true,
+            center: true,
+            transition: "slide"
+        });
+    </script>
+</body>
+
+</html>

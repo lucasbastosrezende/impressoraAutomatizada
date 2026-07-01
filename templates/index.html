@@ -5,257 +5,264 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Capital Papelaria - Impressão Rápida</title>
-    <!-- CSS Externo -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 
 <body>
-    <div class="floating-elements">
-        <div class="floating-circle"></div>
-        <div class="floating-circle"></div>
-        <div class="floating-circle"></div>
-    </div>
-    <div class="container">
+    <main class="conteudo-principal">
 
-        <!-- Step 1: Upload -->
-        <div class="step" id="step1">
-            <div class="logo">
+        <!-- Etapa 1: o usuário escolhe o arquivo que deseja imprimir. -->
+        <section class="etapa" id="etapa1">
+            <div class="logotipo">
                 <img src="{{ url_for('static', filename='logo/logo-removebg-preview.png') }}"
-                    alt="Logo Capital Papelaria" style="max-width: 150px; height: auto;">
+                    alt="Logo da Capital Papelaria">
             </div>
+
             <h2>Como funciona?</h2>
-            <p>Selecione o arquivo, você será redirecionado para as características de sua impressão.</p>
+            <p>Selecione o arquivo e, em seguida, configure as características da impressão.</p>
 
-            <form id="uploadForm" enctype="multipart/form-data">
-                <div class="upload-area" id="uploadArea">
-                    <p id="HideFilled">Adicione o seu arquivo para impressão</p>
-                    <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                        📁 escolha o arquivo
+            <form id="formularioEnvio" enctype="multipart/form-data">
+                <div class="area-envio" id="areaEnvio">
+                    <p id="textoArquivoPendente">Adicione o seu arquivo para impressão</p>
+
+                    <button type="button" class="botao-envio"
+                        onclick="document.getElementById('campoArquivo').click()">
+                        Escolher arquivo
                     </button>
-                    <input type="file" id="fileInput" name="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                        style="display: none;" required>
 
-                    <div class="file-preview" id="filePreview" style="display: none;">
-                        <div class="file-info">
-                            <div id="fileName"></div>
-                            <div id="fileSize"></div>
-                            <!-- Botão de Remover Arquivo -->
-                            <button type="button" class="remove-file-btn" onclick="removeFile()">
-                                🗑️ Remover Arquivo
+                    <input type="file" id="campoArquivo" name="arquivo"
+                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.bmp,.tiff" required>
+
+                    <div class="previsualizacao-arquivo" id="previsualizacaoArquivo">
+                        <div class="info-arquivo">
+                            <div id="nomeArquivo"></div>
+                            <div id="tamanhoArquivo"></div>
+
+                            <button type="button" class="botao-remover-arquivo" onclick="removerArquivo()">
+                                Remover arquivo
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div style="text-align: center; margin-top: 30px;">
-                    <button type="button" class="action-btn primary hidden" id="nextStep1"
-                        onclick="goToStep(2)">Continuar</button>
+                <div class="botoes-etapa">
+                    <button type="button" class="botao-acao primario oculto" id="botaoContinuarEtapa1"
+                        onclick="irParaEtapa(2)">
+                        Continuar
+                    </button>
                 </div>
             </form>
-        </div>
+        </section>
 
-        <!-- Step 2: PDF Preview & Print Options -->
-        <div class="step hidden" id="step2">
-            <h2>Preview do PDF & Opções</h2>
-            <p style="margin: 0">Configure as opções de impressão e defina as páginas</p>
+        <!-- Etapa 2: o usuário define páginas, cópias e preferências de impressão. -->
+        <section class="etapa oculto" id="etapa2">
+            <h2>Pré-visualização e opções</h2>
+            <p>Configure as opções de impressão e defina quais páginas serão impressas.</p>
 
-            <div style="display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start;">
-                <!-- COLUNA ESQUERDA: OPÇÕES DE IMPRESSÃO -->
-                <div class="options-section" style="flex: 1; min-width: 300px; margin: 0;">
-                    <div class="option-group">
-                        <h3>Tipo de impressão:</h3>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="printType" value="normal" checked>
-                                <span>Impressão Normal</span>
+            <div class="layout-opcoes">
+                <aside class="secao-opcoes">
+                    <div class="grupo-opcao">
+                        <h3>Tipo de impressão</h3>
+                        <div class="grupo-radio">
+                            <label class="opcao-radio">
+                                <input type="radio" name="tipoImpressao" value="normal" checked>
+                                <span>Impressão normal</span>
                             </label>
-                            <label class="radio-option">
-                                <input type="radio" name="printType" value="duplex">
-                                <span>Frente e Verso (se disponível)</span>
+                            <label class="opcao-radio">
+                                <input type="radio" name="tipoImpressao" value="frente_e_verso">
+                                <span>Frente e verso</span>
                             </label>
                         </div>
                     </div>
 
-                    <div class="option-group">
-                        <h3>Modo de Cor:</h3>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="colorMode" value="color" checked>
+                    <div class="grupo-opcao">
+                        <h3>Modo de cor</h3>
+                        <div class="grupo-radio">
+                            <label class="opcao-radio">
+                                <input type="radio" name="modoCor" value="colorido">
                                 <span>Colorido</span>
                             </label>
-                            <label class="radio-option">
-                                <input type="radio" name="colorMode" value="monochrome">
-                                <span>Preto e Branco</span>
+                            <label class="opcao-radio">
+                                <input type="radio" name="modoCor" value="preto_e_branco" checked>
+                                <span>Preto e branco</span>
                             </label>
                         </div>
                     </div>
 
-                    <div class="option-group">
-                        <h3>Ajuste na Página:</h3>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="pageFit" value="fit" checked>
-                                <span>Ajustar à folha (Preencher)</span>
+                    <div class="grupo-opcao">
+                        <h3>Ajuste na página</h3>
+                        <div class="grupo-radio">
+                            <label class="opcao-radio">
+                                <input type="radio" name="ajustePagina" value="ajustar" checked>
+                                <span>Ajustar à folha</span>
                             </label>
-                            <label class="radio-option">
-                                <input type="radio" name="pageFit" value="shrink">
+                            <label class="opcao-radio">
+                                <input type="radio" name="ajustePagina" value="reduzir">
                                 <span>Reduzir para caber</span>
                             </label>
-                            <label class="radio-option">
-                                <input type="radio" name="pageFit" value="noscale">
-                                <span>Tamanho Real (Sem escala)</span>
+                            <label class="opcao-radio">
+                                <input type="radio" name="ajustePagina" value="tamanho_real">
+                                <span>Tamanho real</span>
                             </label>
                         </div>
                     </div>
 
-                    <div class="option-group">
-                        <h3>Tamanho do Papel:</h3>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="paperSize" value="a4" checked>
+                    <div class="grupo-opcao">
+                        <h3>Tamanho do papel</h3>
+                        <div class="grupo-radio">
+                            <label class="opcao-radio">
+                                <input type="radio" name="tamanhoPapel" value="a4" checked>
                                 <span>A4</span>
                             </label>
-                            <label class="radio-option">
-                                <input type="radio" name="paperSize" value="letter">
+                            <label class="opcao-radio">
+                                <input type="radio" name="tamanhoPapel" value="carta">
                                 <span>Carta</span>
                             </label>
-                            <label class="radio-option">
-                                <input type="radio" name="paperSize" value="legal">
-                                <span>Legal</span>
+                            <label class="opcao-radio">
+                                <input type="radio" name="tamanhoPapel" value="oficio">
+                                <span>Ofício</span>
                             </label>
                         </div>
                     </div>
 
-                    <div class="option-group">
-                        <h3>Orientação:</h3>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="orientation" value="portrait" checked>
+                    <div class="grupo-opcao">
+                        <h3>Orientação</h3>
+                        <div class="grupo-radio">
+                            <label class="opcao-radio">
+                                <input type="radio" name="orientacao" value="retrato" checked>
                                 <span>Retrato</span>
                             </label>
-                            <label class="radio-option">
-                                <input type="radio" name="orientation" value="landscape">
+                            <label class="opcao-radio">
+                                <input type="radio" name="orientacao" value="paisagem">
                                 <span>Paisagem</span>
                             </label>
                         </div>
                     </div>
-                </div>
+                </aside>
 
-                <!-- COLUNA DIREITA: PREVIEW -->
-                <div id="pdfPreviewContainer" style="flex: 2; min-width: 400px; display: none; margin: 0; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: hidden; max-height: 80vh; overflow-y: auto;">
-                    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 10px;">
-                        <div class="SelectAll" style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" onchange="selectAllPages()" id="checkado" checked style="width: 18px; height: 18px;"> 
-                            <label for="checkado" style="font-weight: 600; cursor: pointer;">Selecionar Todas</label>
+                <section id="conteinerVisualizacao">
+                    <div class="cabecalho-visualizacao">
+                        <div class="controle-selecionar-todas">
+                            <input type="checkbox" onchange="selecionarTodasPaginas()" id="marcarTodasPaginas" checked>
+                            <label for="marcarTodasPaginas">Selecionar todas</label>
                         </div>
-                        <div style="display:flex; align-items: center; gap: 10px;">
-                            <label style="font-size: 0.9em; font-weight: 500;">Definir Cópias p/ Todas:</label>
-                            <input type="number" onchange="setAllCopies()" id="globalCopies" min="0" max="99" value="1"
-                                style="width: 60px; padding: 5px; border-radius: 8px; border: 1px solid #cbd5e1; text-align: center;">
+
+                        <div class="controle-copias">
+                            <label for="copiasGlobais">Cópias por página:</label>
+                            <input type="number" onchange="definirCopiasParaTodas()" id="copiasGlobais"
+                                min="0" max="99" value="1">
                         </div>
                     </div>
 
-                    <!-- Div para visualização de imagens simples -->
-                    <div id="imagePreviewContainer" style="display: none; text-align: center; margin-top: 20px;">
-                        <canvas id="imagePreviewCanvas" style="max-width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></canvas>
+                    <!-- Para imagens, o canvas mostra uma prévia com rotação e preto e branco aplicados. -->
+                    <div id="conteinerVisualizacaoImagem">
+                        <canvas id="quadroVisualizacaoImagem"></canvas>
                     </div>
 
-                    <div id="pagesContainer"></div>
+                    <div id="conteinerPaginas"></div>
 
-                    <div style="margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 10px; display: flex; justify-content: space-around;">
-                        <strong>Páginas selecionadas: <span id="totalSelectedPages" style="color: #1e3a8a;">0</span></strong>
-                        <strong>Total de cópias: <span id="totalCopies" style="color: #1e3a8a;">0</span></strong>
+                    <div class="rodape-visualizacao">
+                        <div class="caixa-estatistica">
+                            <span class="rotulo-estatistica">Páginas selecionadas</span>
+                            <span class="valor-estatistica" id="totalPaginasSelecionadas">0</span>
+                        </div>
+                        <div class="caixa-estatistica">
+                            <span class="rotulo-estatistica">Total de cópias</span>
+                            <span class="valor-estatistica" id="totalCopias">0</span>
+                        </div>
                     </div>
-                </div>
+                </section>
             </div>
 
-            <div id="stepbutton">
-                <button class="action-btn" onclick="goToStep(1)">Voltar</button>
-                <button class="action-btn primary" onclick="goToStep(3)">Resumo</button>
+            <div class="botoes-etapa">
+                <button class="botao-acao" onclick="irParaEtapa(1)">Voltar</button>
+                <button class="botao-acao primario" onclick="irParaEtapa(3)">Resumo</button>
             </div>
-        </div>
+        </section>
 
+        <!-- Etapa 3: resumo final antes de gerar o pagamento. -->
+        <section class="etapa oculto" id="etapa3">
+            <div class="resumo">
+                <h3>Resumo da impressão</h3>
 
-        <!-- Step 3: Summary and Print -->
-        <div class="step hidden" id="step3">
-            <div class="summary">
-                <h3>Resumo da Impressão:</h3>
-                <div class="summary-details" id="summaryDetails">
-                    <div><strong>Arquivo:</strong> <span id="summaryFileName">-</span></div>
-                    <div><strong>Páginas selecionadas:</strong> <span id="summarySelectedPages">-</span></div>
-                    <div><strong>Total de cópias:</strong> <span id="summaryTotalCopies">-</span></div>
-                    <div><strong>Tipo:</strong> <span id="summaryPrintType">Impressão Normal</span></div>
-                    <div><strong>Modo de Cor:</strong> <span id="summaryColor">Preto e Branco</span></div>
-                    <div><strong>Ajuste:</strong> <span id="summaryFit">Ajustar à folha</span></div>
-                    <div><strong>Valor Total:</strong> <span id="summaryValue">Normal</span></div>
+                <div class="detalhes-resumo" id="detalhesResumo">
+                    <div><strong>Arquivo:</strong> <span id="resumoNomeArquivo">-</span></div>
+                    <div><strong>Páginas selecionadas:</strong> <span id="resumoPaginasSelecionadas">-</span></div>
+                    <div><strong>Total de cópias:</strong> <span id="resumoTotalCopias">-</span></div>
+                    <div><strong>Tipo:</strong> <span id="resumoTipoImpressao">Impressão normal</span></div>
+                    <div><strong>Modo de cor:</strong> <span id="resumoModoCor">Preto e branco</span></div>
+                    <div><strong>Ajuste:</strong> <span id="resumoAjuste">Ajustar à folha</span></div>
+                    <div><strong>Valor total:</strong> <span id="resumoValorTotal">R$0,00</span></div>
                 </div>
 
+                <div class="modo-demonstracao">
+                    <input type="checkbox" id="modoDemonstracao">
+                    <label for="modoDemonstracao">Ativar modo de demonstração do TCC</label>
+                </div>
 
-                <div id="stepbutton">
-                    <button class="action-btn" onclick="goToStep(2)">Voltar</button>
-                    <button class="action-btn primary" onclick="goToStep(4)">Pagamento</button>
+                <div class="botoes-etapa">
+                    <button class="botao-acao" onclick="irParaEtapa(2)">Voltar</button>
+                    <button class="botao-acao primario" onclick="irParaEtapa(4)">Pagamento</button>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="step hidden" id="step4">
+        <!-- Etapa 4: pagamento Pix e liberação da impressão. -->
+        <section class="etapa oculto" id="etapa4">
             <h2>Pagamento via Pix</h2>
 
-            <div style="font-size: 1.5em; color: #1e3a8a; margin-bottom: 20px;"><strong>Valor:</strong></div>
-            <div class="price"></div>
+            <div class="titulo-valor"><strong>Valor:</strong></div>
+            <div class="preco"></div>
 
-            <!-- Loading enquanto gera o QR -->
-            <div id="pixLoading" style="text-align: center; margin: 30px 0; display: none;">
-                <span class="loading"></span>
-                <p style="color: #64748b; margin-top: 10px;">Gerando QR Code Pix...</p>
+            <div id="carregamentoPix">
+                <span class="carregando"></span>
+                <p>Gerando QR Code Pix...</p>
             </div>
 
-            <!-- Container do QR Code Pix -->
-            <div id="pixQrContainer" style="display: none; text-align: center; margin: 25px 0; padding: 25px; background: #f0f9ff; border-radius: 15px; border: 2px solid #bfdbfe;">
-                <h3 style="color: #1e3a8a; margin-bottom: 15px;">📱 Escaneie o QR Code para pagar</h3>
-                <div id="pixQrImage" style="margin: 15px auto;">
-                    <img id="pixQrImg" src="" alt="QR Code Pix" style="max-width: 280px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div id="conteinerQrPix">
+                <h3>Escaneie o QR Code para pagar</h3>
+
+                <div id="imagemQrPix">
+                    <img id="qrPixImagem" src="" alt="QR Code Pix">
                 </div>
-                <div style="margin-top: 15px;">
-                    <p style="font-weight: 600; color: #374151; margin-bottom: 8px;">Ou copie o código Pix (Copia e Cola):</p>
-                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="pixCopiaCola" readonly
-                            style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; width: 300px; font-size: 0.85em; background: #fff; text-overflow: ellipsis;">
-                        <button type="button" onclick="copyPixCode()" id="copyPixBtn"
-                            style="padding: 10px 18px; background: #1e3a8a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
-                            📋 Copiar
+
+                <div class="area-copia-cola">
+                    <p>Ou copie o código Pix copia e cola:</p>
+                    <div class="linha-copia-cola">
+                        <input type="text" id="codigoPixCopiaCola" readonly>
+                        <button type="button" onclick="copiarCodigoPix()" id="botaoCopiarPix">
+                            Copiar
                         </button>
                     </div>
                 </div>
-                <div id="pixPaymentStatus" style="margin-top: 20px; padding: 12px; border-radius: 10px; font-weight: 600; display: none;"></div>
+
+                <div id="situacaoPagamentoPix"></div>
             </div>
 
-            <!-- Confirmação manual para QR estático -->
-            <div id="pixManualConfirm" style="display: none; text-align: center; margin: 15px 0;">
-                <div style="background: #fef3c7; border-radius: 10px; padding: 15px; border-left: 4px solid #f59e0b; margin-bottom: 15px;">
-                    <p style="color: #92400e; font-weight: 500; margin: 0;">⚠️ QR Code estático: Após efetuar o pagamento, clique em "Confirmar Pagamento" para liberar a impressão.</p>
+            <div id="confirmacaoManualPix">
+                <div class="aviso-pix-estatico">
+                    <p>Atenção: este é um QR Code estático. Depois de pagar, clique em confirmar pagamento para liberar a impressão.</p>
                 </div>
-                <button type="button" onclick="confirmManualPayment()" class="action-btn primary">
-                    ✅ Confirmar Pagamento
+                <button type="button" onclick="confirmarPagamentoManual()" class="botao-acao primario">
+                    Confirmar pagamento
                 </button>
             </div>
 
-            <div id="printStatus"></div>
+            <div id="situacaoImpressao"></div>
 
-            <div id="stepbutton">
-                <button class="action-btn" onclick="goToStep(3)">Voltar</button>
-                <button class="action-btn primary hidden" id="printBtn" onclick="sendToPrint()">
-                    <span id="printBtnText">🖨️ Imprimir</span>
+            <div class="botoes-etapa">
+                <button class="botao-acao" onclick="irParaEtapa(3)">Voltar</button>
+                <button class="botao-acao primario oculto" id="botaoImprimir" onclick="enviarParaImpressao()">
+                    <span id="textoBotaoImprimir">Imprimir</span>
                 </button>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
-    <!-- Bibliotecas Externas -->
+    <!-- Bibliotecas usadas para ler, visualizar e editar PDFs no navegador. -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    
-    <!-- JavaScript Externo -->
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 </body>
 

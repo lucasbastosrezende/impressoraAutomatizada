@@ -1,14 +1,14 @@
-# Arquivos de ambiente
+# Arquivos de ambiente local.
 .env
 .env.*
 !.env.example
 
-# Diretórios virtuais Python
+# Ambientes virtuais Python.
 venv/
 env/
 .venv/
 
-# Caches e arquivos compilados
+# Caches e arquivos compilados do Python.
 __pycache__/
 *.pyc
 *.pyo
@@ -17,23 +17,23 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Documentos do usuário enviados para impressão (nunca devem ir para o git)
+# Documentos enviados por usuários para impressão.
 uploads/
 *.pdf
 *.docx
 *.doc
 
-# Imagens enviadas pelo usuário — mas preservando os logos do projeto
+# Imagens enviadas por usuários, mantendo somente os logos oficiais do projeto.
 *.png
 *.jpg
 *.jpeg
 !static/logo/**
 
-# Pastas de IDE e SO
+# Pastas de editores e arquivos criados pelo sistema operacional.
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs de execução.
 *.log
